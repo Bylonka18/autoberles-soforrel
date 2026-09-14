@@ -28,98 +28,121 @@ button:disabled{opacity:.6;cursor:wait}
 </head>
 <body>
 <main class="box">
-  <div class="brand">Autóbérlés sofőrrel – Kiskőrös</div>
-  <h1>Fuvarrendelés megerősítése</h1>
-  <p id="leiras">A rendelés véglegesítéséhez nyomd meg az alábbi gombot.</p>
-  <button id="gomb">✅ MEGERŐSÍTEM A RENDELÉST</button>
-  <div id="uzenet" class="msg"></div>
-
-  <div id="queue" class="queue">
-    <div class="label">AKTUÁLIS HELYED A SORBAN</div>
-    <div id="queueNum" class="num">–</div>
-    <div id="queueText" class="small">Állapot betöltése...</div>
-  </div>
-
-  <a id="kovetes" class="back" href="/kovetes/">📍 RENDELÉSEM KÖVETÉSE</a>
-  <div id="saved" class="saved">Ezt a rendelést ezen az eszközön megjegyeztük. Ha később visszamész a rendelési oldalra, onnan újra meg tudod nyitni az aktuális állapotát.</div>
+<div class="brand">Autóbérlés sofőrrel – Kiskőrös</div>
+<h1>Fuvarrendelés megerősítése</h1>
+<p id="leiras">A rendelés véglegesítéséhez nyomd meg az alábbi gombot.</p>
+<button id="gomb">✅ MEGERŐSÍTEM A RENDELÉST</button>
+<div id="uzenet" class="msg"></div>
+<div id="queue" class="queue">
+<div class="label">AKTUÁLIS HELYED A SORBAN</div>
+<div id="queueNum" class="num">–</div>
+<div id="queueText" class="small">Állapot betöltése...</div>
+</div>
+<a id="kovetes" class="back" href="/kovetes/">📍 RENDELÉSEM KÖVETÉSE</a>
+<div id="saved" class="saved">Ezt a rendelést ezen az eszközön megjegyeztük. Ha később visszamész a rendelési oldalra, onnan újra meg tudod nyitni az aktuális állapotát.</div>
 </main>
 <script>
 const API="https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec";
 const TOKEN=String(new URLSearchParams(location.search).get('token')||'').trim();
-
 function jsonpCall(nev,args=[],timeout=25000){
-  return new Promise((resolve,reject)=>{
-    const cb='__m_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-    const s=document.createElement('script');
-    const q=new URLSearchParams({api:'1',muvelet:'webHivas',callback:cb,nev:nev,args:encodeURIComponent(JSON.stringify(args)),sessionToken:''});
-    const t=setTimeout(()=>{clean();reject(new Error('timeout'))},timeout);
-    function clean(){clearTimeout(t);delete window[cb];s.remove()}
-    window[cb]=d=>{clean();resolve(d)};
-    s.onerror=()=>{clean();reject(new Error('net'))};
-    s.src=API+'?'+q.toString();
-    document.body.appendChild(s);
-  });
+return new Promise((resolve,reject)=>{
+const cb='__m_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+const s=document.createElement('script');
+const q=new URLSearchParams({
+api:'1',
+muvelet:'webHivas',
+callback:cb,
+nev:nev,
+args:encodeURIComponent(JSON.stringify(args)),
+sessionToken:''
+});
+const t=setTimeout(()=>{clean();reject(new Error('timeout'))},timeout);
+function clean(){clearTimeout(t);delete window[cb];s.remove()}
+window[cb]=d=>{clean();resolve(d)};
+s.onerror=()=>{clean();reject(new Error('net'))};
+s.src=API+'?'+q.toString();
+document.body.appendChild(s);
+});
 }
-
 function allapotMutat(v){
-  const box=document.getElementById('queue');
-  const num=document.getElementById('queueNum');
-  const txt=document.getElementById('queueText');
-  if(!v||!v.siker){box.style.display='none';return}
-  box.style.display='block';
-  if(v.statusz==='Új rendelés'){
-    const vi=v.varakozasInfo||{};
-    if(vi.sorban){
-      num.textContent=vi.sorban+'.';
-      txt.textContent=vi.sorban===1?'Te következel a minél hamarabb rendelések között.':'Ennyi a helyed a minél hamarabb rendelések között.';
-    }else{
-      num.textContent='✓';
-      txt.textContent='A rendelésed rögzítve van. Időpontra foglalt rendelésnél nincs sorszám.';
-    }
-  }else if(v.statusz==='Elvállalva'){
-    num.textContent='✓';
-    txt.textContent=(v.sofor?v.sofor+' elvállalta a fuvarodat.':'A fuvarodat elvállalták.')+' Nyisd meg a követést az élő helyzethez.';
-  }else if(v.statusz==='Kész'){
-    num.textContent='✓';
-    txt.textContent='A fuvar teljesítve.';
-  }else{
-    num.textContent='✓';
-    txt.textContent='Rendelés állapota: '+String(v.statusz||'rögzítve');
-  }
+const box=document.getElementById('queue');
+const num=document.getElementById('queueNum');
+const txt=document.getElementById('queueText');
+if(!v||!v.siker){box.style.display='none';return}
+box.style.display='block';
+if(v.statusz==='Új rendelés'){
+const vi=v.varakozasInfo||{};
+if(vi.sorban){
+num.textContent=vi.sorban+'.';
+let alap=vi.sorban===1
+? 'Te következel a minél hamarabb rendelések között.'
+: 'Ennyi a helyed a minél hamarabb rendelések között.';
+if(vi.becsultVarakozasPerc===0){
+alap+=' Becsült várakozás: hamarosan te következel.';
+}else if(Number(vi.becsultVarakozasPerc)>0){
+alap+=' Becsült várakozás: kb. '+vi.becsultVarakozasPerc+' perc';
+if(vi.becsultKezdes) alap+=' (kb. '+vi.becsultKezdes+' körül)';
+alap+='.';
 }
-
+txt.textContent=alap;
+}else{
+num.textContent='✓';
+txt.textContent='A rendelésed rögzítve van. Időpontra foglalt rendelésnél nincs sorszám.';
+}
+}else if(v.statusz==='Elvállalva'){
+num.textContent='✓';
+txt.textContent=(v.sofor? v.sofor+' elvállalta a fuvarodat.' : 'A fuvarodat elvállalták.')+' Nyisd meg a követést az élő helyzethez.';
+}else if(v.statusz==='Kész'){
+num.textContent='✓';
+txt.textContent='A fuvar teljesítve.';
+}else{
+num.textContent='✓';
+txt.textContent='Rendelés állapota: '+String(v.statusz||'rögzítve');
+}
+}
 async function statusBetolt(id){
-  try{const v=await jsonpCall('foglalasAllapotLekerdezese',[id],20000);allapotMutat(v)}catch(e){}
+try{
+const v=await jsonpCall('foglalasAllapotLekerdezese',[id],20000);
+allapotMutat(v);
+}catch(e){}
 }
-
 async function megerosit(){
-  const g=document.getElementById('gomb'),u=document.getElementById('uzenet');
-  if(!TOKEN){u.className='msg err';u.textContent='Hiányzó vagy hibás megerősítő link.';g.style.display='none';return}
-  g.disabled=true;g.textContent='⏳ ELLENŐRZÉS...';
-  try{
-    const v=await jsonpCall('foglalasEmailMegerositese',[TOKEN],30000);
-    u.className='msg '+(v&&v.siker?'ok':'err');
-    u.textContent=v&&v.uzenet?v.uzenet:'Ismeretlen válasz.';
-    if(v&&v.siker){
-      g.style.display='none';
-      document.getElementById('leiras').textContent='A rendelésed megerősítése sikerült.';
-      const id=String(v.foglalasiAzonosito||v.azonosito||'').trim();
-      const link=document.getElementById('kovetes');
-      if(id){
-        localStorage.setItem('foglalasAzonosito',id);
-        link.href='/kovetes/?id='+encodeURIComponent(id);
-        link.style.display='block';
-        document.getElementById('saved').style.display='block';
-        await statusBetolt(id);
-      }
-    }else{
-      g.disabled=false;g.textContent='✅ MEGERŐSÍTEM A RENDELÉST';
-    }
-  }catch(e){
-    u.className='msg err';u.textContent='Kapcsolati hiba. Próbáld újra!';g.disabled=false;g.textContent='✅ MEGERŐSÍTEM A RENDELÉST';
-  }
+const g=document.getElementById('gomb'),u=document.getElementById('uzenet');
+if(!TOKEN){
+u.className='msg err';
+u.textContent='Hiányzó vagy hibás megerősítő link.';
+g.style.display='none';
+return;
 }
-
+g.disabled=true;
+g.textContent='⏳ ELLENŐRZÉS...';
+try{
+const v=await jsonpCall('foglalasEmailMegerositese',[TOKEN],30000);
+u.className='msg '+(v&&v.siker?'ok':'err');
+u.textContent=v&&v.uzenet?v.uzenet:'Ismeretlen válasz.';
+if(v&&v.siker){
+g.style.display='none';
+document.getElementById('leiras').textContent='A rendelésed megerősítése sikerült.';
+const id=String(v.foglalasiAzonosito||v.azonosito||'').trim();
+const link=document.getElementById('kovetes');
+if(id){
+localStorage.setItem('foglalasAzonosito',id);
+link.href='/kovetes/?id='+encodeURIComponent(id);
+link.style.display='block';
+document.getElementById('saved').style.display='block';
+await statusBetolt(id);
+}
+}else{
+g.disabled=false;
+g.textContent='✅ MEGERŐSÍTEM A RENDELÉST';
+}
+}catch(e){
+u.className='msg err';
+u.textContent='Kapcsolati hiba. Próbáld újra!';
+g.disabled=false;
+g.textContent='✅ MEGERŐSÍTEM A RENDELÉST';
+}
+}
 document.getElementById('gomb').onclick=megerosit;
 </script>
 </body>
