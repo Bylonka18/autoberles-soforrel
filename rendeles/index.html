@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070b12">
+<title>Fuvar rendelése – Autóbérlés sofőrrel</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#070b12;color:#fff;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;overflow:hidden}
+.shell{height:100dvh;display:flex;flex-direction:column}.top{height:64px;flex:0 0 64px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;background:#07101d;border-bottom:1px solid rgba(255,255,255,.1);box-shadow:0 7px 24px rgba(0,0,0,.22);z-index:2}.brand{font-weight:950;line-height:1.05;font-size:15px}.brand span{display:block;color:#ffc400;font-size:12px;margin-top:3px}.back{display:inline-flex;align-items:center;gap:7px;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.16);border-radius:11px;padding:9px 12px;background:rgba(255,255,255,.04);font-weight:800;font-size:13px}.page-title{font-weight:950;font-size:16px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.frame-wrap{position:relative;flex:1;min-height:0;background:#070b12}iframe{display:block;width:100%;height:100%;border:0;background:#070b12}.loading{position:absolute;inset:0;display:grid;place-items:center;color:#aeb9c7;font-weight:800;pointer-events:none}.dot{width:10px;height:10px;border-radius:50%;background:#ffc400;display:inline-block;margin-right:8px;animation:pulse .8s infinite alternate}@keyframes pulse{to{opacity:.25;transform:scale(.75)}}@media(max-width:620px){.top{height:56px;flex-basis:56px;padding:0 10px}.brand{font-size:13px}.brand span{font-size:10px}.page-title{font-size:14px}.back{padding:8px 9px;font-size:12px}}
+</style>
+</head>
+<body><div class="shell"><header class="top"><a class="back" href="/">← Főoldal</a><div class="page-title">Fuvar rendelése</div><div class="brand">Autóbérlés sofőrrel<span>Kiskőrös</span></div></header><main class="frame-wrap"><div id="loading" class="loading"><div><span class="dot"></span>Rendelőfelület betöltése...</div></div><iframe id="appFrame" title="Fuvar rendelése" allow="geolocation; clipboard-write; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></main></div><script>const APP_SRC='https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec';const frame=document.getElementById('appFrame');frame.src=APP_SRC;frame.addEventListener('load',function(){document.getElementById('loading').style.display='none';});</script></body></html>
