@@ -3,11 +3,238 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#070b12">
+<meta name="theme-color" content="#07101d">
 <title>Fuvar rendelése – Autóbérlés sofőrrel</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#070b12;color:#fff;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;overflow:hidden}
-.shell{height:100dvh;display:flex;flex-direction:column}.top{height:64px;flex:0 0 64px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;background:#07101d;border-bottom:1px solid rgba(255,255,255,.1);box-shadow:0 7px 24px rgba(0,0,0,.22);z-index:2}.brand{font-weight:950;line-height:1.05;font-size:15px}.brand span{display:block;color:#ffc400;font-size:12px;margin-top:3px}.back{display:inline-flex;align-items:center;gap:7px;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.16);border-radius:11px;padding:9px 12px;background:rgba(255,255,255,.04);font-weight:800;font-size:13px}.page-title{font-weight:950;font-size:16px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.frame-wrap{position:relative;flex:1;min-height:0;background:#070b12}iframe{display:block;width:100%;height:100%;border:0;background:#070b12}.loading{position:absolute;inset:0;display:grid;place-items:center;color:#aeb9c7;font-weight:800;pointer-events:none}.dot{width:10px;height:10px;border-radius:50%;background:#ffc400;display:inline-block;margin-right:8px;animation:pulse .8s infinite alternate}@keyframes pulse{to{opacity:.25;transform:scale(.75)}}@media(max-width:620px){.top{height:56px;flex-basis:56px;padding:0 10px}.brand{font-size:13px}.brand span{font-size:10px}.page-title{font-size:14px}.back{padding:8px 9px;font-size:12px}}
+:root{--bg:#070b12;--panel:#101927;--panel2:#0c1420;--line:#26344a;--yellow:#ffc400;--text:#f4f7fb;--muted:#9ba9ba;--red:#ff7272;--green:#68e398}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+body{background:radial-gradient(circle at 80% 0,rgba(255,196,0,.09),transparent 28%),#070b12}
+.top{position:sticky;top:0;z-index:30;background:rgba(7,16,29,.96);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.09)}
+.topin{max-width:920px;margin:auto;height:66px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.back{color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:9px 12px;font-weight:850;font-size:13px;background:rgba(255,255,255,.04)}
+.brand{font-weight:950;text-align:right;line-height:1.05;font-size:15px}.brand span{display:block;color:var(--yellow);font-size:11px;margin-top:3px}
+.wrap{max-width:760px;margin:0 auto;padding:28px 14px 56px}
+.hero{margin-bottom:20px}.eyebrow{color:var(--yellow);font-size:12px;font-weight:950;letter-spacing:.14em;text-transform:uppercase}h1{font-size:clamp(32px,8vw,48px);margin:7px 0 9px;line-height:1}.lead{color:var(--muted);line-height:1.55;margin:0}
+.card{background:linear-gradient(180deg,#111b2a,#0c141f);border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:0 18px 45px rgba(0,0,0,.25)}
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.type-btn{border:1px solid #35435b;background:#0d1623;color:#dce5ef;padding:14px;border-radius:14px;font-weight:900;cursor:pointer}
+.type-btn.active{background:var(--yellow);color:#10151d;border-color:var(--yellow)}
+label{display:block;margin:15px 0 7px;font-weight:900;font-size:14px}
+input,select,textarea{width:100%;border:1px solid #34435b;border-radius:13px;background:#0a111c;color:white;padding:13px 14px;font-size:16px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--yellow);box-shadow:0 0 0 3px rgba(255,196,0,.08)}
+textarea{min-height:95px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#idopontBox{display:none}
+google-place-autocomplete{width:100%;display:block}
+.hint{font-size:12px;color:#7f8da0;margin-top:6px;line-height:1.4}
+.submit{width:100%;margin-top:20px;border:0;border-radius:14px;background:linear-gradient(135deg,#ffc400,#ffdb68);color:#111827;font-weight:950;font-size:17px;padding:16px;cursor:pointer;box-shadow:0 10px 28px rgba(255,196,0,.18)}
+.submit:disabled{opacity:.55;cursor:wait}
+.msg{display:none;margin-top:16px;padding:14px;border-radius:14px;line-height:1.5;font-weight:800}
+.msg.ok{display:block;background:rgba(104,227,152,.09);border:1px solid rgba(104,227,152,.28);color:#a8f2c2}
+.msg.err{display:block;background:rgba(255,114,114,.09);border:1px solid rgba(255,114,114,.28);color:#ffb0b0}
+.status{display:none;margin-top:16px;background:linear-gradient(180deg,#101927,#0c141f);border:1px solid var(--line);border-radius:20px;padding:18px}
+.status h2{margin:0 0 8px;font-size:21px}.status p{margin:0;color:#aeb9c7;line-height:1.55}
+.track{display:none;margin-top:14px;background:var(--yellow);color:#111827;text-decoration:none;font-weight:950;text-align:center;padding:14px;border-radius:13px}
+.notice{margin-top:15px;color:#7f8da0;font-size:12px;line-height:1.5;text-align:center}
+.offline{display:none;margin-bottom:15px;background:#39141b;border:1px solid #7a2a37;color:#ffd4da;padding:14px;border-radius:14px;font-weight:850}
+@media(max-width:620px){.topin{height:58px;padding:0 10px}.wrap{padding-top:20px}.card{padding:16px;border-radius:18px}.grid2{grid-template-columns:1fr}.type-grid{grid-template-columns:1fr}.brand{font-size:13px}}
 </style>
 </head>
-<body><div class="shell"><header class="top"><a class="back" href="/">← Főoldal</a><div class="page-title">Fuvar rendelése</div><div class="brand">Autóbérlés sofőrrel<span>Kiskőrös</span></div></header><main class="frame-wrap"><div id="loading" class="loading"><div><span class="dot"></span>Rendelőfelület betöltése...</div></div><iframe id="appFrame" title="Fuvar rendelése" allow="geolocation; clipboard-write; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></main></div><script>const APP_SRC='https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec';const frame=document.getElementById('appFrame');frame.src=APP_SRC;frame.addEventListener('load',function(){document.getElementById('loading').style.display='none';});</script></body></html>
+<body>
+<header class="top"><div class="topin">
+  <a class="back" href="/">← Főoldal</a>
+  <div class="brand">Autóbérlés sofőrrel<span>Kiskőrös</span></div>
+</div></header>
+
+<main class="wrap">
+  <section class="hero">
+    <div class="eyebrow">Online fuvarrendelés</div>
+    <h1>Fuvar rendelése</h1>
+    <p class="lead">Add meg az adatokat, és a rendszer elküldi a megerősítő emailt. Minél hamarabb vagy előre megadott időpontra is rendelhetsz.</p>
+  </section>
+
+  <div id="offline" class="offline">Az online fuvarrendelés jelenleg szünetel.</div>
+
+  <section class="card">
+    <div class="type-grid">
+      <button id="azonnalBtn" class="type-btn active" type="button">🚗 Minél hamarabb</button>
+      <button id="idopontBtn" class="type-btn" type="button">🕐 Időpontra kérem</button>
+    </div>
+
+    <label>Honnan indulnál? *</label>
+    <div id="indulasBox"></div>
+    <div class="hint">Kezdj el gépelni, majd válaszd ki a címet.</div>
+
+    <label>Hová mennél? *</label>
+    <div id="celBox"></div>
+    <div class="hint">A menetidőt a rendszer automatikusan számolja.</div>
+
+    <div id="idopontBox">
+      <div class="grid2">
+        <div><label>Dátum *</label><input id="datum" type="date"></div>
+        <div><label>Időpont *</label><input id="ido" type="time"></div>
+      </div>
+    </div>
+
+    <label>Utasok száma *</label>
+    <select id="utasok">
+      <option value="1">1 fő</option><option value="2">2 fő</option><option value="3">3 fő</option>
+      <option value="4">4 fő</option><option value="5">5 fő</option><option value="6">6 fő</option>
+      <option value="7">7 fő</option><option value="8">8 fő</option><option value="9">9 fő</option>
+    </select>
+
+    <label>Név *</label>
+    <input id="nev" autocomplete="name" placeholder="Teljes név">
+
+    <label>Telefonszám *</label>
+    <input id="telefon" type="tel" autocomplete="tel" placeholder="+36...">
+
+    <label>Email cím *</label>
+    <input id="email" type="email" autocomplete="email" placeholder="pelda@email.hu">
+
+    <label>Megjegyzés</label>
+    <textarea id="megjegyzes" placeholder="Pl. sok csomag, gyerekülés szükséges..."></textarea>
+
+    <button id="kuldes" class="submit" type="button">🚗 FUVAR RENDELÉSE</button>
+    <div id="uzenet" class="msg"></div>
+    <div class="notice">A rendelés csak az emailben kapott megerősítő gomb megnyomása után válik véglegessé. Ha nem találod a levelet, nézd meg a Spam/Kéretlen mappát is.</div>
+  </section>
+
+  <section id="status" class="status">
+    <h2 id="statusCim">Rendelés elküldve</h2>
+    <p id="statusSzoveg"></p>
+    <a id="trackLink" class="track" href="#">📍 RENDELÉS KÖVETÉSE</a>
+  </section>
+</main>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec';
+let rendelesTipus = 'azonnal';
+let indulasCim = '';
+let celCim = '';
+let indulasAuto = null;
+let celAuto = null;
+
+function jsonp(muvelet, params={}, timeout=20000){
+  return new Promise((resolve,reject)=>{
+    const cb='__api_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const script=document.createElement('script');
+    const q=new URLSearchParams({api:'1',muvelet:muvelet,callback:cb});
+    Object.entries(params).forEach(([k,v])=>q.set(k,String(v)));
+    const timer=setTimeout(()=>{cleanup();reject(new Error('Időtúllépés'));},timeout);
+    function cleanup(){clearTimeout(timer);delete window[cb];script.remove();}
+    window[cb]=(data)=>{cleanup();resolve(data);};
+    script.onerror=()=>{cleanup();reject(new Error('Kapcsolati hiba'));};
+    script.src=API_URL+'?'+q.toString();
+    document.body.appendChild(script);
+  });
+}
+
+function setTipus(t){
+  rendelesTipus=t;
+  document.getElementById('azonnalBtn').classList.toggle('active',t==='azonnal');
+  document.getElementById('idopontBtn').classList.toggle('active',t==='idopont');
+  document.getElementById('idopontBox').style.display=t==='idopont'?'block':'none';
+}
+document.getElementById('azonnalBtn').onclick=()=>setTipus('azonnal');
+document.getElementById('idopontBtn').onclick=()=>setTipus('idopont');
+
+function msg(text,ok=false){
+  const u=document.getElementById('uzenet');
+  u.className='msg '+(ok?'ok':'err');
+  u.textContent=text;
+}
+
+async function initAutocomplete(){
+  try{
+    const {PlaceAutocompleteElement}=await google.maps.importLibrary('places');
+    indulasAuto=new PlaceAutocompleteElement({includedRegionCodes:['hu']});
+    celAuto=new PlaceAutocompleteElement({includedRegionCodes:['hu']});
+    indulasAuto.placeholder='Pl. Kiskőrös, Petőfi tér 1.';
+    celAuto.placeholder='Pl. Akasztó, Fő utca 1.';
+    document.getElementById('indulasBox').appendChild(indulasAuto);
+    document.getElementById('celBox').appendChild(celAuto);
+
+    indulasAuto.addEventListener('gmp-select',async e=>{
+      const p=e.placePrediction.toPlace();
+      await p.fetchFields({fields:['formattedAddress','displayName']});
+      indulasCim=p.formattedAddress||p.displayName||'';
+    });
+    celAuto.addEventListener('gmp-select',async e=>{
+      const p=e.placePrediction.toPlace();
+      await p.fetchFields({fields:['formattedAddress','displayName']});
+      celCim=p.formattedAddress||p.displayName||'';
+    });
+  }catch(err){
+    msg('A címkereső nem töltődött be. Frissítsd az oldalt.');
+  }
+}
+
+async function onlineAllapot(){
+  try{
+    const v=await jsonp('onlineRendelesAllapot');
+    const online=!!(v&&v.online);
+    document.getElementById('offline').style.display=online?'none':'block';
+    document.getElementById('kuldes').disabled=!online;
+  }catch(e){}
+}
+
+document.getElementById('kuldes').onclick=async function(){
+  const g=this;
+  const adat={
+    rendelesTipus: rendelesTipus==='idopont'?'idopont':'azonnal',
+    indulas: indulasCim,
+    cel: celCim,
+    datum: document.getElementById('datum').value,
+    ido: document.getElementById('ido').value,
+    utasok: document.getElementById('utasok').value,
+    nev: document.getElementById('nev').value.trim(),
+    telefon: document.getElementById('telefon').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    megjegyzes: document.getElementById('megjegyzes').value.trim()
+  };
+
+  if(!adat.indulas||!adat.cel||!adat.nev||!adat.telefon||!adat.email){
+    msg('Tölts ki minden kötelező mezőt, és válaszd ki az indulási és célcímet!');
+    return;
+  }
+  if(rendelesTipus==='idopont'&&(!adat.datum||!adat.ido)){
+    msg('Időpontra kért rendelésnél a dátum és az időpont kötelező!');
+    return;
+  }
+
+  g.disabled=true;g.textContent='⏳ KÜLDÉS...';
+  try{
+    const v=await jsonp('foglalasKuldes',{adat:encodeURIComponent(JSON.stringify(adat))},30000);
+    if(!v||!v.siker){
+      msg(v&&v.uzenet?v.uzenet:'Nem sikerült elküldeni a rendelést.');
+      return;
+    }
+    msg(v.uzenet||'Rendelés elküldve.',true);
+    const id=String(v.foglalasiAzonosito||'');
+    if(id){
+      localStorage.setItem('foglalasAzonosito',id);
+      const status=document.getElementById('status');
+      status.style.display='block';
+      document.getElementById('statusSzoveg').textContent='Nézd meg az emailedet, és erősítsd meg a rendelést. Utána ezen az oldalon is követheted.';
+      const link=document.getElementById('trackLink');
+      link.href='/kovetes/?id='+encodeURIComponent(id);
+      link.style.display='block';
+      status.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+  }catch(e){
+    msg('Kapcsolati hiba történt. Próbáld újra!');
+  }finally{
+    g.disabled=false;g.textContent='🚗 FUVAR RENDELÉSE';
+  }
+};
+
+const ma=new Date();
+const yyyy=ma.getFullYear(), mm=String(ma.getMonth()+1).padStart(2,'0'), dd=String(ma.getDate()).padStart(2,'0');
+document.getElementById('datum').min=`${yyyy}-${mm}-${dd}`;
+onlineAllapot();
+</script>
+<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDDmvZr_hvdyEaGvNB4E_JcEHgfeRr6oC0&loading=async&libraries=places&callback=initAutocomplete"></script>
+</body>
+</html>
