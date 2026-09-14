@@ -198,10 +198,10 @@ kuldes.onclick=async function(){
  if(!adat.indulas||!adat.cel||!adat.nev||!adat.telefon||!adat.email){msg('Tölts ki minden kötelező mezőt, és válaszd ki a felajánlott indulási és célcímet!');return;}
  if(rendelesTipus==='idopont'&&(!adat.datum||!adat.ido)){msg('Időpontra kért rendelésnél a dátum és az időpont kötelező!');return;}
  kuldes.disabled=true;kuldes.textContent='⏳ KÜLDÉS...';
- try{
-  const v=await jsonp('foglalasKuldes',{adat:encodeURIComponent(JSON.stringify(adat))},90000);
-  if(!v||!v.siker){msg(v&&v.uzenet?v.uzenet:'Nem sikerült elküldeni a rendelést.');return;}
-  msg(v.uzenet||'Rendelés elküldve.',true);
+ const requestId='r_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+
+ async function sikerMegjelenit(v){
+  msg(v.uzenet||'Rendelés sikeresen elküldve.',true);
   const id=String(v.foglalasiAzonosito||'');
   if(id){
    localStorage.setItem('foglalasAzonosito',id);
@@ -210,7 +210,49 @@ kuldes.onclick=async function(){
    trackLink.href='/kovetes/?id='+encodeURIComponent(id);
    trackLink.style.display='block';
   }
- }catch(e){msg('A rendelés feldolgozása elindult. Ha megérkezett a megerősítő email, a rendelés sikeresen bekerült — ne küldd el újra.');}
+ }
+
+ async function eredmenyPoll(){
+  for(let i=0;i<20;i++){
+   await new Promise(r=>setTimeout(r,1500));
+   try{
+    const r=await jsonp('foglalasEredmeny',{requestId},12000);
+    if(r&&r.kesz){
+     if(r.siker){
+      await sikerMegjelenit(r);
+     }else{
+      msg(r.uzenet||'Nem sikerült elküldeni a rendelést.');
+     }
+     return true;
+    }
+   }catch(e){}
+  }
+  return false;
+ }
+
+ try{
+  const v=await jsonp(
+   'foglalasKuldes',
+   {adat:encodeURIComponent(JSON.stringify(adat)),requestId},
+   25000
+  );
+
+  if(v&&v.siker){
+   await sikerMegjelenit(v);
+  }else if(v){
+   msg(v.uzenet||'Nem sikerült elküldeni a rendelést.');
+  }else{
+   const megvan=await eredmenyPoll();
+   if(!megvan){
+    msg('A rendelés feldolgozása még tart. Ha megérkezett a megerősítő email, ne küldd el újra.');
+   }
+  }
+ }catch(e){
+  const megvan=await eredmenyPoll();
+  if(!megvan){
+   msg('A rendelés feldolgozása még tart. Ha megérkezett a megerősítő email, ne küldd el újra.');
+  }
+ }
  finally{kuldes.disabled=false;kuldes.textContent='🚗 FUVAR RENDELÉSE';}
 };
 
