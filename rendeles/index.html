@@ -199,7 +199,7 @@ kuldes.onclick=async function(){
  if(rendelesTipus==='idopont'&&(!adat.datum||!adat.ido)){msg('Időpontra kért rendelésnél a dátum és az időpont kötelező!');return;}
  kuldes.disabled=true;kuldes.textContent='⏳ KÜLDÉS...';
  try{
-  const v=await jsonp('foglalasKuldes',{adat:encodeURIComponent(JSON.stringify(adat))},30000);
+  const v=await jsonp('foglalasKuldes',{adat:encodeURIComponent(JSON.stringify(adat))},90000);
   if(!v||!v.siker){msg(v&&v.uzenet?v.uzenet:'Nem sikerült elküldeni a rendelést.');return;}
   msg(v.uzenet||'Rendelés elküldve.',true);
   const id=String(v.foglalasiAzonosito||'');
@@ -210,7 +210,7 @@ kuldes.onclick=async function(){
    trackLink.href='/kovetes/?id='+encodeURIComponent(id);
    trackLink.style.display='block';
   }
- }catch(e){msg('Kapcsolati hiba történt. Próbáld újra!');}
+ }catch(e){msg('A rendelés feldolgozása elindult. Ha megérkezett a megerősítő email, a rendelés sikeresen bekerült — ne küldd el újra.');}
  finally{kuldes.disabled=false;kuldes.textContent='🚗 FUVAR RENDELÉSE';}
 };
 
