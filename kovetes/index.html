@@ -91,7 +91,6 @@
   </div>
 </div>
 
-
 <script>
 const SAJAT_API_URL="https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec";
 const SAJAT_ROLE="public";
@@ -145,6 +144,7 @@ Object.defineProperty(google.script,'run',{
   let terkep = null;
   let marker = null;
   let utolsoStatusz = "";
+  let gpsLekerdezesFolyamatban = false;
 
   function szoveg(id, ertek){ const e=document.getElementById(id); if(e)e.textContent=ertek||"–"; }
 
@@ -238,7 +238,6 @@ Object.defineProperty(google.script,'run',{
       .foglalasAllapotLekerdezese(FOGLALAS_AZONOSITO);
   }
 
-
   function rendelesLemondas(){
     if(!FOGLALAS_AZONOSITO) return;
 
@@ -295,9 +294,11 @@ Object.defineProperty(google.script,'run',{
   }
 
   function gpsFrissites(){
-    if(utolsoStatusz !== 'Elvállalva') return;
+    if(utolsoStatusz !== 'Elvállalva' || gpsLekerdezesFolyamatban) return;
+    gpsLekerdezesFolyamatban = true;
     google.script.run
       .withSuccessHandler(function(v){
+        gpsLekerdezesFolyamatban = false;
         if(!v || !v.siker) return;
         if(v.statusz !== 'Elvállalva') return;
 
@@ -329,12 +330,15 @@ Object.defineProperty(google.script,'run',{
         }
         info.textContent=friss;
       })
+      .withFailureHandler(function(){
+        gpsLekerdezesFolyamatban = false;
+      })
       .utasAppKovetes(FOGLALAS_AZONOSITO);
   }
 
   allapotFrissites();
-  setInterval(allapotFrissites,10000);
-  setInterval(gpsFrissites,7000);
+  setInterval(allapotFrissites,5000);
+  setInterval(gpsFrissites,2000);
 </script>
 <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDDmvZr_hvdyEaGvNB4E_JcEHgfeRr6oC0&loading=async"></script>
 </body>
