@@ -1,105 +1,364 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#090d14">
-  <title>Fuvar követése</title>
-  <style>
-    *{box-sizing:border-box}
-    body{margin:0;background:#090d14;color:#f7f8fb;font-family:Arial,Helvetica,sans-serif;min-height:100vh}
-    .wrap{max-width:1050px;margin:0 auto;padding:18px 14px 34px}
-    .fejlec{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
-    .brand{font-size:18px;font-weight:900}.brand span{color:#ffc400}
-    .vissza{color:#ffc400;text-decoration:none;font-weight:800;font-size:14px}
-    .kartya{background:linear-gradient(180deg,#121925,#0d131e);border:1px solid #263246;border-radius:22px;padding:20px;box-shadow:0 18px 45px rgba(0,0,0,.28);margin-bottom:16px}
-    .statusz{font-size:14px;font-weight:900;letter-spacing:.8px;color:#ffc400;text-transform:uppercase;margin-bottom:8px}
-    .nagyCim{font-size:clamp(26px,6vw,44px);font-weight:950;line-height:1.06;margin:0 0 10px}
-    .leiras{color:#aeb9c9;font-size:16px;line-height:1.45}
-    .sorBox{text-align:center;padding:28px 16px}
-    .sorFelirat{font-size:18px;font-weight:800;color:#cdd6e4}
-    .sorSzam{font-size:clamp(86px,24vw,160px);font-weight:1000;line-height:.9;color:#ffc400;text-shadow:0 0 35px rgba(255,196,0,.16);margin:14px 0 8px}
-    .sorAl{font-size:20px;font-weight:900}
-    .kiemelt{margin-top:14px;display:none;padding:12px 14px;border-radius:14px;background:rgba(255,92,92,.13);border:1px solid rgba(255,92,92,.45);font-weight:900;color:#ff8b8b}
-    .utvonal{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-top:18px;padding-top:18px;border-top:1px solid #263246}
-    .hely{min-width:0}.hely small{display:block;color:#8190a5;margin-bottom:5px}.hely b{font-size:17px;overflow-wrap:anywhere}.nyil{font-size:28px;color:#ffc400}
-    .gpsCim{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
-    .gpsCim strong{font-size:23px}.gpsInfo{font-size:14px;color:#aeb9c9;text-align:right}
-    #terkep{width:100%;height:min(62vh,620px);min-height:390px;border-radius:18px;background:#111827;overflow:hidden}
-    .gpsVar{height:min(62vh,620px);min-height:390px;border-radius:18px;background:radial-gradient(circle at center,#192337,#0d131e 70%);display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;color:#9eacc0;font-size:18px;line-height:1.5}
-    .soforNev{font-size:28px;font-weight:950;color:#fff}
-    .friss{color:#7fe3a1;font-weight:800}
-    .kesz{text-align:center;padding:42px 20px}.keszEmoji{font-size:72px}.kesz h1{font-size:34px;margin:12px 0}.hiba{color:#ff8b8b;font-weight:800}
-    .lemondasBox{margin-top:16px;text-align:center}
-    .lemondasGomb{width:100%;max-width:520px;padding:15px 18px;border:1px solid rgba(255,92,92,.55);border-radius:14px;background:rgba(255,92,92,.12);color:#ff8b8b;font-size:17px;font-weight:950;cursor:pointer}
-    .lemondasGomb:hover{background:rgba(255,92,92,.2)}
-    .lemondasGomb:disabled{opacity:.55;cursor:not-allowed}
-    .lemondasUzenet{margin-top:10px;font-size:14px;font-weight:800;min-height:18px}
-    @media(max-width:650px){
-      .wrap{padding:12px 10px 25px}.kartya{padding:16px;border-radius:18px}
-      .fejlec{align-items:flex-start}.brand{font-size:16px}.vissza{font-size:12px}
-      .utvonal{grid-template-columns:1fr}.nyil{transform:rotate(90deg);text-align:center}
-      #terkep,.gpsVar{min-height:440px;height:58vh}
-      .gpsCim{align-items:flex-start;flex-direction:column}.gpsInfo{text-align:left}
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#090d14">
+<title>Fuvar követése</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#090d14;color:#f7f8fb;font-family:Arial,Helvetica,sans-serif;min-height:100vh}
+.wrap{max-width:1050px;margin:0 auto;padding:18px 14px 34px}
+.fejlec{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.brand{font-size:18px;font-weight:900}.brand span{color:#ffc400}
+.vissza{color:#ffc400;text-decoration:none;font-weight:800;font-size:14px}
+.kartya{background:linear-gradient(180deg,#121925,#0d131e);border:1px solid #263246;border-radius:22px;padding:20px;box-shadow:0 18px 45px rgba(0,0,0,.28);margin-bottom:16px}
+.statusz{font-size:14px;font-weight:900;letter-spacing:.8px;color:#ffc400;text-transform:uppercase;margin-bottom:8px}
+.nagyCim{font-size:clamp(26px,6vw,44px);font-weight:950;line-height:1.06;margin:0 0 10px}
+.leiras{color:#aeb9c9;font-size:16px;line-height:1.45}
+.sorBox{text-align:center;padding:28px 16px}
+.sorFelirat{font-size:18px;font-weight:800;color:#cdd6e4}
+.sorSzam{font-size:clamp(86px,24vw,160px);font-weight:1000;line-height:.9;color:#ffc400;text-shadow:0 0 35px rgba(255,196,0,.16);margin:14px 0 8px}
+.sorAl{font-size:20px;font-weight:900}
+.kiemelt{margin-top:14px;display:none;padding:12px 14px;border-radius:14px;background:rgba(255,92,92,.13);border:1px solid rgba(255,92,92,.45);font-weight:900;color:#ff8b8b}
+.utvonal{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-top:18px;padding-top:18px;border-top:1px solid #263246}
+.hely{min-width:0}.hely small{display:block;color:#8190a5;margin-bottom:5px}.hely b{font-size:17px;overflow-wrap:anywhere}.nyil{font-size:28px;color:#ffc400}
+.gpsCim{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.gpsCim strong{font-size:23px}.gpsInfo{font-size:14px;color:#aeb9c9;text-align:right}
+#terkep{width:100%;height:min(62vh,620px);min-height:390px;border-radius:18px;background:#111827;overflow:hidden}
+.gpsVar{height:min(62vh,620px);min-height:390px;border-radius:18px;background:radial-gradient(circle at center,#192337,#0d131e 70%);display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;color:#9eacc0;font-size:18px;line-height:1.5}
+.soforNev{font-size:28px;font-weight:950;color:#fff}
+.friss{color:#7fe3a1;font-weight:800}
+.kesz{text-align:center;padding:42px 20px}.keszEmoji{font-size:72px}.kesz h1{font-size:34px;margin:12px 0}.hiba{color:#ff8b8b;font-weight:800}
+.lemondasBox{margin-top:16px;text-align:center}
+.lemondasGomb{width:100%;max-width:520px;padding:15px 18px;border:1px solid rgba(255,92,92,.55);border-radius:14px;background:rgba(255,92,92,.12);color:#ff8b8b;font-size:17px;font-weight:950;cursor:pointer}
+.lemondasGomb:hover{background:rgba(255,92,92,.2)}
+.lemondasGomb:disabled{opacity:.55;cursor:not-allowed}
+.lemondasUzenet{margin-top:10px;font-size:14px;font-weight:800;min-height:18px}
+@media(max-width:650px){
+.wrap{padding:12px 10px 25px}.kartya{padding:16px;border-radius:18px}
+.fejlec{align-items:flex-start}.brand{font-size:16px}.vissza{font-size:12px}
+.utvonal{grid-template-columns:1fr}.nyil{transform:rotate(90deg);text-align:center}
+#terkep,.gpsVar{min-height:440px;height:58vh}
+.gpsCim{align-items:flex-start;flex-direction:column}.gpsInfo{text-align:left}
+}
+</style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
 <div class="wrap">
-  <div class="fejlec">
-    <div class="brand">Autóbérlés sofőrrel <span>– Kiskőrös</span></div>
-    <a class="vissza" href="/rendeles/" target="_top">← Új rendelés</a>
-  </div>
-
-  <div id="foKartya" class="kartya">
-    <div id="statusz" class="statusz">Betöltés...</div>
-    <h1 id="cim" class="nagyCim">Fuvarod követése</h1>
-    <div id="leiras" class="leiras">Lekérjük a rendelésed aktuális állapotát.</div>
-
-    <div id="sorResz" class="sorBox" style="display:none;">
-      <div class="sorFelirat">JELENLEG ENNYI A HELYED A SORBAN</div>
-      <div id="sorSzam" class="sorSzam">1.</div>
-      <div id="sorAl" class="sorAl">Te következel</div>
-      <div id="kiemelt" class="kiemelt">🔥 KIEMELT RENDELÉS – régóta várakozol, ezért elsőbbséget kapsz</div>
-    </div>
-
-    <div id="menetidoInfo" style="display:none;margin-top:16px;padding:11px 13px;border-radius:12px;background:#101a2a;border:1px solid #2c3d56;color:#dbe5f2;font-weight:850;"></div>
-
-    <div class="utvonal">
-      <div class="hely"><small>INDULÁS</small><b id="indulas">–</b></div>
-      <div class="nyil">→</div>
-      <div class="hely"><small>CÉL</small><b id="cel">–</b></div>
-    </div>
-
-    <div id="lemondasBox" class="lemondasBox" style="display:none;">
-      <button id="lemondasGomb" class="lemondasGomb" type="button" onclick="rendelesLemondas()">❌ RENDELÉS LEMONDÁSA</button>
-      <div id="lemondasUzenet" class="lemondasUzenet"></div>
-    </div>
-  </div>
-
-  <div id="gpsKartya" class="kartya" style="display:none;">
-    <div class="gpsCim">
-      <div><div class="statusz">📍 ÉLŐ GPS</div><strong id="gpsNev">Sofőr helyzete</strong></div>
-      <div id="gpsInfo" class="gpsInfo">Várakozás GPS-jelre...</div>
-    </div>
-    <div id="soforAutoAdat" style="display:none;margin:0 0 14px;padding:12px 14px;border-radius:14px;background:rgba(255,196,0,.07);border:1px solid rgba(255,196,0,.24);font-weight:850;"></div>
-    <div id="gpsVar" class="gpsVar">A sofőr már elvállalta a fuvarodat.<br>Amint megérkezik az első GPS-jel, itt nagy térképen látod.</div>
-    <div id="terkep" style="display:none;"></div>
-  </div>
+<div class="fejlec">
+<div class="brand">Autóbérlés sofőrrel <span>– Kiskőrös</span></div>
+<a class="vissza" href="/rendeles/" target="_top">← Új rendelés</a>
 </div>
-
+<div id="foKartya" class="kartya">
+<div id="statusz" class="statusz">Betöltés...</div>
+<h1 id="cim" class="nagyCim">Fuvarod követése</h1>
+<div id="leiras" class="leiras">Lekérjük a rendelésed aktuális állapotát.</div>
+<div id="sorResz" class="sorBox" style="display:none;">
+<div class="sorFelirat">JELENLEG ENNYI A HELYED A SORBAN</div>
+<div id="sorSzam" class="sorSzam">1.</div>
+<div id="sorAl" class="sorAl">Te következel</div>
+<div id="varakozasIdo" style="display:none;margin-top:12px;padding:10px 12px;border-radius:12px;background:rgba(255,196,0,.08);border:1px solid rgba(255,196,0,.28);color:#ffe083;font-weight:900;"></div>
+<div id="kiemelt" class="kiemelt">🔥 KIEMELT RENDELÉS – régóta várakozol, ezért elsőbbséget kapsz</div>
+</div>
+<div id="menetidoInfo" style="display:none;margin-top:16px;padding:11px 13px;border-radius:12px;background:#101a2a;border:1px solid #2c3d56;color:#dbe5f2;font-weight:850;"></div>
+<div class="utvonal">
+<div class="hely"><small>INDULÁS</small><b id="indulas">–</b></div>
+<div class="nyil">→</div>
+<div class="hely"><small>CÉL</small><b id="cel">–</b></div>
+</div>
+<div id="lemondasBox" class="lemondasBox" style="display:none;">
+<button id="lemondasGomb" class="lemondasGomb" type="button" onclick="rendelesLemondas()">
+❌ RENDELÉS LEMONDÁSA
+</button>
+<div id="lemondasUzenet" class="lemondasUzenet"></div>
+</div>
+</div>
+<div id="gpsKartya" class="kartya" style="display:none;">
+<div class="gpsCim">
+<div>
+<div class="statusz">📍 ÉLŐ GPS</div>
+<strong id="gpsNev">Sofőr helyzete</strong>
+</div>
+<div id="gpsInfo" class="gpsInfo">Várakozás GPS-jelre...</div>
+</div>
+<div id="soforAutoAdat" style="display:none;margin:0 0 14px;padding:12px 14px;border-radius:14px;background:rgba(255,196,0,.07);border:1px solid rgba(255,196,0,.24);font-weight:850;"></div>
+<div id="gpsVar" class="gpsVar">A sofőr már elvállalta a fuvarodat.<br>Amint megérkezik az első GPS-jel, itt nagy térképen látod.</div>
+<div id="terkep" style="display:none;"></div>
+</div>
+</div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const SAJAT_API_URL="https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec";
-function sajatJsonp(muvelet,params={},timeout=25000){return new Promise((resolve,reject)=>{const cb='__w_'+Date.now()+'_'+Math.random().toString(36).slice(2),s=document.createElement('script'),q=new URLSearchParams({api:'1',muvelet:muvelet,callback:cb});Object.entries(params).forEach(([k,v])=>q.set(k,String(v)));const t=setTimeout(()=>{cleanup();reject(new Error('Időtúllépés'));},timeout);function cleanup(){clearTimeout(t);delete window[cb];s.remove();}window[cb]=d=>{cleanup();resolve(d);};s.onerror=()=>{cleanup();reject(new Error('Kapcsolati hiba'));};s.src=SAJAT_API_URL+'?'+q.toString();document.body.appendChild(s);});}
-function sajatWebHivas(nev,args){return sajatJsonp('webHivas',{nev:nev,args:encodeURIComponent(JSON.stringify(args||[])),sessionToken:''},30000);}
-window.google=window.google||{};google.script=google.script||{};Object.defineProperty(google.script,'run',{configurable:true,get:function(){let ok=function(){},hiba=function(){},proxy;proxy=new Proxy({},{get:function(target,prop){if(prop==='withSuccessHandler')return function(fn){ok=fn||function(){};return proxy;};if(prop==='withFailureHandler')return function(fn){hiba=fn||function(){};return proxy;};return function(...args){sajatWebHivas(String(prop),args).then(ok).catch(hiba);};}});return proxy;}});
+const SAJAT_ROLE="public";
+function sajatJsonp(muvelet,params={},timeout=25000){
+return new Promise((resolve,reject)=>{
+const cb='__w_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+const s=document.createElement('script');
+const q=new URLSearchParams({api:'1',muvelet:muvelet,callback:cb});
+Object.entries(params).forEach(([k,v])=>q.set(k,String(v)));
+const t=setTimeout(()=>{cleanup();reject(new Error('Időtúllépés'));},timeout);
+function cleanup(){clearTimeout(t);delete window[cb];s.remove();}
+window[cb]=d=>{cleanup();resolve(d);};
+s.onerror=()=>{cleanup();reject(new Error('Kapcsolati hiba'));};
+s.src=SAJAT_API_URL+'?'+q.toString();
+document.body.appendChild(s);
+});
+}
+function sajatWebHivas(nev,args){
+return sajatJsonp('webHivas',{
+nev:nev,
+args:encodeURIComponent(JSON.stringify(args||[])),
+sessionToken:''
+},30000);
+}
+window.google=window.google||{};
+google.script=google.script||{};
+Object.defineProperty(google.script,'run',{
+configurable:true,
+get:function(){
+let ok=function(){},hiba=function(){};
+let proxy;
+proxy=new Proxy({},{
+get:function(target,prop){
+if(prop==='withSuccessHandler') return function(fn){ok=fn||function(){};return proxy;};
+if(prop==='withFailureHandler') return function(fn){hiba=fn||function(){};return proxy;};
+return function(...args){
+sajatWebHivas(String(prop),args)
+.then(function(v){ok(v);})
+.catch(function(e){hiba(e);});
+};
+}
+});
+return proxy;
+}
+});
 </script>
 <script>
-const _kp=new URLSearchParams(location.search);const FOGLALAS_AZONOSITO=String(_kp.get('id')||_kp.get('kovetes')||localStorage.getItem('foglalasAzonosito')||'').trim();let terkep=null,marker=null,utolsoStatusz="",gpsLekerdezesFolyamatban=false;function szoveg(id,ertek){const e=document.getElementById(id);if(e)e.textContent=ertek||"–";}
-function allapotFrissites(){if(!FOGLALAS_AZONOSITO){leiras.innerHTML='<span class="hiba">Hiányzó követési azonosító.</span>';return;}google.script.run.withSuccessHandler(function(v){if(!v||!v.siker){leiras.innerHTML='<span class="hiba">A rendelés nem található.</span>';return;}utolsoStatusz=v.statusz||'';szoveg('indulas',v.indulas);szoveg('cel',v.cel);const menetPerc=Math.max(0,Number(v.menetido)||0);if(menetPerc){menetidoInfo.style.display='block';menetidoInfo.textContent='⏱️ Becsült menetidő: kb. '+menetPerc+' perc';}else menetidoInfo.style.display='none';lemondasBox.style.display=(v.statusz==='Megerősítésre vár'||v.statusz==='Új rendelés'||v.statusz==='Elvállalva')?'block':'none';if(v.statusz==='Megerősítésre vár'){szoveg('statusz','📧 MEGERŐSÍTÉSRE VÁR');szoveg('cim','Erősítsd meg az emailed');szoveg('leiras','A rendelés csak az emailben lévő megerősítés után kerül be a sorba.');sorResz.style.display='none';gpsKartya.style.display='none';}else if(v.statusz==='Új rendelés'){szoveg('statusz','⏳ VÁRAKOZÁS');szoveg('cim','Rendelésed sorban áll');gpsKartya.style.display='none';const vi=v.varakozasInfo||{};if(vi.sorban){sorResz.style.display='block';szoveg('sorSzam',vi.sorban+'.');szoveg('sorAl',vi.sorban===1?'Te következel':vi.sorban+'. vagy a minél hamarabb rendelések között');}else sorResz.style.display='none';let l='Várjuk, hogy valamelyik dolgozó sofőr elvállalja a fuvarodat.';if(vi.ajanlas&&vi.ajanlas.szabad){if(vi.ajanlas.szabad==='Most szabad')l+=' Van jelenleg szabad sofőr.';else if(vi.ajanlas.szabad==='Fuvarban')l+=' A következő alkalmas sofőr jelenleg fuvarban van.';else l+=' Várható odaérés: kb. '+vi.ajanlas.szabad+'.';}szoveg('leiras',l);}else if(v.statusz==='Elvállalva'){szoveg('statusz','✅ SOFŐR ÚTON');szoveg('cim',v.sofor?v.sofor+' elvállalta a fuvarodat':'A fuvarodat elvállalták');szoveg('leiras','Most már élőben követheted a sofőr helyzetét az alábbi nagy térképen.');const a=v.soforAuto||{},autoReszek=[a.autoSzin,a.autoTipus,a.rendszam].filter(Boolean);if(autoReszek.length){soforAutoAdat.style.display='block';soforAutoAdat.textContent='🚘 '+autoReszek.join(' • ');}else soforAutoAdat.style.display='none';sorResz.style.display='none';gpsKartya.style.display='block';gpsFrissites();}else if(v.statusz==='Kész'){foKartya.innerHTML='<div class="kesz"><div class="keszEmoji">✅</div><h1>Fuvar teljesítve</h1><div class="leiras">Köszönjük, hogy minket választottál!</div><a href="/ertekeles/" style="display:inline-block;margin-top:22px;background:#ffc400;color:#10131a;text-decoration:none;padding:15px 22px;border-radius:14px;font-weight:950;">⭐ ÉRTÉKELD A SZOLGÁLTATÁST</a></div>';gpsKartya.style.display='none';}else if(v.statusz==='Lemondva'){foKartya.innerHTML='<div class="kesz"><div class="keszEmoji">❌</div><h1>Fuvar lemondva</h1></div>';gpsKartya.style.display='none';}}).withFailureHandler(function(){szoveg('leiras','Kapcsolati hiba. Néhány másodperc múlva újrapróbáljuk.');}).foglalasAllapotLekerdezese(FOGLALAS_AZONOSITO);}
-function rendelesLemondas(){if(!FOGLALAS_AZONOSITO)return;if(!confirm(utolsoStatusz==='Elvállalva'?'A sofőr már elvállalta a fuvarodat. Biztosan le szeretnéd mondani?':'Biztosan le szeretnéd mondani a rendelést?'))return;lemondasGomb.disabled=true;lemondasGomb.textContent='⏳ LEMONDÁS...';google.script.run.withSuccessHandler(function(v){if(v&&v.siker){allapotFrissites();return;}lemondasGomb.disabled=false;lemondasGomb.textContent='❌ RENDELÉS LEMONDÁSA';lemondasUzenet.textContent=v?.uzenet||'Nem sikerült lemondani.';}).withFailureHandler(function(){lemondasGomb.disabled=false;lemondasGomb.textContent='❌ RENDELÉS LEMONDÁSA';}).utasFuvarLemondas(FOGLALAS_AZONOSITO);}
-function gpsFrissites(){if(utolsoStatusz!=='Elvállalva'||gpsLekerdezesFolyamatban)return;gpsLekerdezesFolyamatban=true;google.script.run.withSuccessHandler(function(v){gpsLekerdezesFolyamatban=false;if(!v||!v.siker||v.statusz!=='Elvállalva')return;if(!v.helyzetEl||!isFinite(Number(v.lat))||!isFinite(Number(v.lng))){gpsVar.style.display='flex';terkep.style.display='none';gpsInfo.textContent='Várakozás az első GPS-jelre...';return;}const lat=Number(v.lat),lng=Number(v.lng);gpsVar.style.display='none';document.getElementById('terkep').style.display='block';szoveg('gpsNev',v.sofor?v.sofor+' élő helyzete':'Sofőr élő helyzete');const elem=document.getElementById('terkep');if(typeof L==='undefined'){gpsInfo.textContent='Térkép betöltése...';return;}if(!terkep){terkep=L.map(elem).setView([lat,lng],16);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(terkep);marker=L.marker([lat,lng],{title:v.sofor||'Sofőr'}).addTo(terkep);setTimeout(()=>terkep.invalidateSize(),150);}else{marker.setLatLng([lat,lng]);terkep.panTo([lat,lng]);}gpsInfo.textContent=v.frissitve?'🟢 GPS frissítve':'GPS aktív';}).withFailureHandler(function(){gpsLekerdezesFolyamatban=false;}).utasAppKovetes(FOGLALAS_AZONOSITO);}
-allapotFrissites();setInterval(allapotFrissites,5000);setInterval(gpsFrissites,2000);
-</script></body></html>
+const _kp=new URLSearchParams(location.search);
+const FOGLALAS_AZONOSITO=String(_kp.get('id')||_kp.get('kovetes')||localStorage.getItem('foglalasAzonosito')||'').trim();
+let terkep = null;
+let marker = null;
+let utolsoStatusz = "";
+let gpsLekerdezesFolyamatban = false;
+function szoveg(id, ertek){ const e=document.getElementById(id); if(e)e.textContent=ertek||"–"; }
+function allapotFrissites(){
+if(!FOGLALAS_AZONOSITO){
+document.getElementById('leiras').innerHTML='<span class="hiba">Hiányzó követési azonosító.</span>';
+return;
+}
+google.script.run
+.withSuccessHandler(function(v){
+if(!v || !v.siker){
+document.getElementById('leiras').innerHTML='<span class="hiba">A rendelés nem található.</span>';
+return;
+}
+utolsoStatusz = v.statusz || '';
+szoveg('indulas', v.indulas);
+szoveg('cel', v.cel);
+const menetidoInfo=document.getElementById('menetidoInfo');
+const menetPerc=Math.max(0,Number(v.menetido)||0);
+if(menetidoInfo){
+if(menetPerc){
+menetidoInfo.style.display='block';
+menetidoInfo.textContent='⏱️ Becsült menetidő: kb. '+menetPerc+' perc';
+}else{
+menetidoInfo.style.display='none';
+}
+}
+const sorResz=document.getElementById('sorResz');
+const gpsKartya=document.getElementById('gpsKartya');
+const kiemelt=document.getElementById('kiemelt');
+const lemondasBox=document.getElementById('lemondasBox');
+if(lemondasBox){
+lemondasBox.style.display =
+(v.statusz === 'Megerősítésre vár' || v.statusz === 'Új rendelés' || v.statusz === 'Elvállalva')
+? 'block'
+: 'none';
+}
+if(v.statusz === 'Megerősítésre vár'){
+szoveg('statusz','📧 MEGERŐSÍTÉSRE VÁR');
+szoveg('cim','Erősítsd meg az emailed');
+szoveg('leiras','A rendelés csak az emailben lévő megerősítés után kerül be a sorba.');
+sorResz.style.display='none'; gpsKartya.style.display='none';
+}
+else if(v.statusz === 'Új rendelés'){
+szoveg('statusz','⏳ VÁRAKOZÁS');
+szoveg('cim','Rendelésed sorban áll');
+gpsKartya.style.display='none';
+const vi=v.varakozasInfo || {};
+if(vi.sorban){
+sorResz.style.display='block';
+szoveg('sorSzam', vi.sorban + '.');
+szoveg('sorAl', vi.sorban === 1 ? 'Te következel' : (vi.sorban + '. vagy a minél hamarabb rendelések között'));
+const viIdo=document.getElementById('varakozasIdo');
+if(viIdo){
+if(vi.becsultVarakozasPerc===0){
+viIdo.style.display='block';
+viIdo.textContent='⏱️ Becsült várakozás: hamarosan te következel';
+}else if(Number(vi.becsultVarakozasPerc)>0){
+viIdo.style.display='block';
+viIdo.textContent='⏱️ Becsült várakozás: kb. '+vi.becsultVarakozasPerc+' perc'+(vi.becsultKezdes?' • kb. '+vi.becsultKezdes+' körül következhetsz':'');
+}else{
+viIdo.style.display='none';
+}
+}
+} else {
+sorResz.style.display='none';
+}
+let l='Várjuk, hogy valamelyik dolgozó sofőr elvállalja a fuvarodat.';
+if(vi.ajanlas && vi.ajanlas.szabad){
+if(vi.ajanlas.szabad==='Most szabad') l+=' Van jelenleg szabad sofőr.';
+else if(vi.ajanlas.szabad==='Fuvarban') l+=' A következő alkalmas sofőr jelenleg fuvarban van.';
+else l+=' Várható odaérés: kb. '+vi.ajanlas.szabad+'.';
+}
+szoveg('leiras',l);
+kiemelt.style.display='none';
+}
+else if(v.statusz === 'Elvállalva'){
+szoveg('statusz','✅ SOFŐR ÚTON');
+szoveg('cim', v.sofor ? v.sofor + ' elvállalta a fuvarodat' : 'A fuvarodat elvállalták');
+szoveg('leiras','Most már élőben követheted a sofőr helyzetét az alábbi nagy térképen.');
+const autoAdat=document.getElementById('soforAutoAdat');
+const a=v.soforAuto || {};
+const autoReszek=[a.autoSzin,a.autoTipus,a.rendszam].filter(Boolean);
+if(autoAdat && autoReszek.length){
+autoAdat.style.display='block';
+autoAdat.textContent='🚘 '+autoReszek.join(' • ');
+}else if(autoAdat){
+autoAdat.style.display='none';
+}
+sorResz.style.display='none'; gpsKartya.style.display='block';
+gpsFrissites();
+}
+else if(v.statusz === 'Kész'){
+document.getElementById('foKartya').innerHTML='<div class="kesz"><div class="keszEmoji">✅</div><h1>Fuvar teljesítve</h1><div class="leiras">Köszönjük, hogy minket választottál!</div><a href="/ertekeles/" target="_top" style="display:inline-block;margin-top:22px;background:#ffc400;color:#10131a;text-decoration:none;padding:15px 22px;border-radius:14px;font-weight:950;">⭐ ÉRTÉKELD A SZOLGÁLTATÁST</a></div>';
+gpsKartya.style.display='none';
+}
+else if(v.statusz === 'Lemondva'){
+document.getElementById('foKartya').innerHTML='<div class="kesz"><div class="keszEmoji">❌</div><h1>Fuvar lemondva</h1><div class="leiras">Ez a rendelés le lett mondva.</div></div>';
+gpsKartya.style.display='none';
+}
+})
+.withFailureHandler(function(){
+szoveg('leiras','Kapcsolati hiba. Néhány másodperc múlva újrapróbáljuk.');
+})
+.foglalasAllapotLekerdezese(FOGLALAS_AZONOSITO);
+}
+function rendelesLemondas(){
+if(!FOGLALAS_AZONOSITO) return;
+let kerdes='Biztosan le szeretnéd mondani a rendelést?';
+if(utolsoStatusz === 'Elvállalva'){
+kerdes='A sofőr már elvállalta a fuvarodat. Biztosan le szeretnéd mondani?';
+}
+if(!confirm(kerdes)) return;
+const g=document.getElementById('lemondasGomb');
+const u=document.getElementById('lemondasUzenet');
+if(g){
+g.disabled=true;
+g.textContent='⏳ LEMONDÁS...';
+}
+if(u){
+u.style.color='#aeb9c9';
+u.textContent='A rendelés lemondása folyamatban...';
+}
+google.script.run
+.withSuccessHandler(function(v){
+if(v && v.siker){
+if(u){
+u.style.color='#7fe3a1';
+u.textContent=v.uzenet || 'A rendelést lemondtad.';
+}
+allapotFrissites();
+return;
+}
+if(g){
+g.disabled=false;
+g.textContent='❌ RENDELÉS LEMONDÁSA';
+}
+if(u){
+u.style.color='#ff8b8b';
+u.textContent=(v && v.uzenet) ? v.uzenet : 'Nem sikerült lemondani a rendelést.';
+}
+})
+.withFailureHandler(function(){
+if(g){
+g.disabled=false;
+g.textContent='❌ RENDELÉS LEMONDÁSA';
+}
+if(u){
+u.style.color='#ff8b8b';
+u.textContent='Kapcsolati hiba. Próbáld újra!';
+}
+})
+.utasFuvarLemondas(FOGLALAS_AZONOSITO);
+}
+function gpsFrissites(){
+if(utolsoStatusz !== 'Elvállalva' || gpsLekerdezesFolyamatban) return;
+gpsLekerdezesFolyamatban = true;
+google.script.run
+.withSuccessHandler(function(v){
+gpsLekerdezesFolyamatban = false;
+if(!v || !v.siker) return;
+if(v.statusz !== 'Elvállalva') return;
+const gpsVar=document.getElementById('gpsVar');
+const terkepElem=document.getElementById('terkep');
+const info=document.getElementById('gpsInfo');
+if(!v.helyzetEl || !isFinite(Number(v.lat)) || !isFinite(Number(v.lng))){
+gpsVar.style.display='flex';
+terkepElem.style.display='none';
+info.textContent='Várakozás az első GPS-jelre...';
+return;
+}
+const lat=Number(v.lat);
+const lng=Number(v.lng);
+gpsVar.style.display='none';
+terkepElem.style.display='block';
+szoveg('gpsNev', v.sofor ? v.sofor + ' élő helyzete' : 'Sofőr élő helyzete');
+if(typeof L === 'undefined'){
+info.textContent='Térkép betöltése...';
+return;
+}
+if(!terkep){
+terkep=L.map(terkepElem,{
+zoomControl:true,
+attributionControl:true
+}).setView([lat,lng],16);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+maxZoom:19,
+attribution:'© OpenStreetMap'
+}).addTo(terkep);
+marker=L.marker([lat,lng],{
+title:v.sofor||'Sofőr'
+}).addTo(terkep);
+setTimeout(function(){
+try{terkep.invalidateSize();}catch(e){}
+},150);
+}else{
+marker.setLatLng([lat,lng]);
+terkep.panTo([lat,lng],{animate:true,duration:0.5});
+}
+let friss='GPS aktív';
+if(v.frissitve){
+const d=new Date(v.frissitve);
+if(!isNaN(d.getTime())){
+friss='🟢 Frissítve: '+
+String(d.getHours()).padStart(2,'0')+':'+
+String(d.getMinutes()).padStart(2,'0')+':'+
+String(d.getSeconds()).padStart(2,'0');
+}
+}
+info.textContent=friss;
+})
+.withFailureHandler(function(){
+gpsLekerdezesFolyamatban = false;
+})
+.utasAppKovetes(FOGLALAS_AZONOSITO);
+}
+allapotFrissites();
+setInterval(allapotFrissites,5000);
+setInterval(gpsFrissites,2000);
+</script>
+</body>
+</html>
