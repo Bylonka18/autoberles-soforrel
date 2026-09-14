@@ -3,40 +3,125 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Autóbérlés sofőrrel Kiskőrösön. Online fuvarrendelés, rugalmas időpontok, készpénzes és kártyás fizetés.">
+<meta name="description" content="Autóbérlés sofőrrel Kiskőrösön. Online fuvarrendelés, élő követés, rugalmas időpontok, készpénzes és kártyás fizetés.">
 <title>Autóbérlés sofőrrel – Kiskőrös</title>
 <style>
-:root{--bg:#070b12;--panel:#101a29;--line:rgba(255,255,255,.09);--yellow:#f7c531;--yellow2:#ffdc6b;--text:#f4f7fb;--muted:#aeb9c7;--dark:#0d1724}
+:root{--bg:#070b12;--panel:#101a29;--line:rgba(255,255,255,.09);--yellow:#f7c531;--yellow2:#ffdc6b;--text:#f4f7fb;--muted:#aeb9c7;--dark:#0d1724;--fb:#1877f2}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:#070b12;color:var(--text)}a{text-decoration:none;color:inherit}.wrap{width:min(1180px,calc(100% - 34px));margin:auto;position:relative;z-index:2}
 .topbar{background:#05080d;color:#d9e2ec;padding:9px 16px;text-align:center;font-size:13px;letter-spacing:.05em;border-bottom:1px solid var(--line)}
 .hero{position:relative;overflow:hidden;min-height:670px;background:radial-gradient(circle at 80% 25%,rgba(247,197,49,.11),transparent 25%),linear-gradient(145deg,#07111f,#0b1a2e 58%,#101827)}
-.hero::before{content:"";position:absolute;inset:80px 4% 0 36%;background:url('https://drive.google.com/thumbnail?id=1r5FJ2o_lZ9_XIxf_x1FXJF6WWKy6Nk2C&sz=w1000') center/contain no-repeat;opacity:.10;filter:saturate(.8);pointer-events:none}
 .hero::after{content:"";position:absolute;left:-8%;right:-8%;bottom:-75px;height:150px;background:linear-gradient(90deg,#f7c531,#f08b35);transform:rotate(-3deg);opacity:.9}
-.nav{display:flex;justify-content:space-between;align-items:center;padding:24px 0;gap:18px}.brand{font-weight:900;font-size:23px;line-height:1.1}.brand span{color:var(--yellow)}.nav-actions{display:flex;gap:10px;flex-wrap:wrap}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;padding:13px 20px;font-weight:850;border:1px solid transparent;transition:.2s}.btn:hover{transform:translateY(-2px)}.btn-yellow{background:linear-gradient(135deg,var(--yellow),var(--yellow2));color:var(--dark);box-shadow:0 10px 26px rgba(247,197,49,.2)}.btn-outline{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:white}
+.nav{display:flex;justify-content:space-between;align-items:center;padding:24px 0;gap:18px}.brand{font-weight:900;font-size:23px;line-height:1.1}.brand span{color:var(--yellow)}.nav-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;padding:13px 20px;font-weight:850;border:1px solid transparent;transition:.2s}.btn:hover{transform:translateY(-2px)}.btn-yellow{background:linear-gradient(135deg,var(--yellow),var(--yellow2));color:var(--dark);box-shadow:0 10px 26px rgba(247,197,49,.2)}.btn-outline{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:white}.btn-fb{background:var(--fb);color:#fff}
 .hero-grid{display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:48px;padding:55px 0 110px}.eyebrow{font-weight:900;letter-spacing:.15em;text-transform:uppercase;color:var(--yellow);font-size:13px}h1{margin:10px 0 20px;font-size:clamp(50px,8vw,88px);line-height:.93;letter-spacing:-.05em}h1 .yellow{color:var(--yellow);display:block}.lead{font-size:19px;line-height:1.65;max-width:640px;color:#cbd5e1;margin-bottom:28px}.hero-actions{display:flex;gap:12px;flex-wrap:wrap}.hero-note{margin-top:18px;font-weight:800;color:#eef3f8}
 .phone-card{background:linear-gradient(180deg,rgba(20,32,50,.94),rgba(10,18,30,.96));border:1px solid rgba(255,255,255,.12);border-radius:30px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.4)}.phone-top{background:linear-gradient(135deg,#0c1624,#14243a);border-radius:21px;padding:22px;text-align:center}.phone-top .small{font-size:12px;opacity:.72;letter-spacing:.16em;font-weight:800}.phone-top .big{font-size:28px;font-weight:950;margin-top:6px}.phone-top .big span{color:var(--yellow)}.phone-body{padding:18px 5px 4px}.phone-row{display:flex;gap:11px;align-items:center;margin:14px 0;font-weight:700;color:#d9e2ec}.check{width:28px;height:28px;border-radius:9px;background:rgba(54,211,153,.15);color:#48d6a6;display:grid;place-items:center;border:1px solid rgba(72,214,166,.28)}
-.section{padding:72px 0}.section-title{text-align:center;font-size:38px;margin:0 0 12px}.section-sub{text-align:center;color:var(--muted);max-width:720px;margin:0 auto 38px;line-height:1.7}.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:15px}.card,.hours-card,.contact-card{background:linear-gradient(180deg,rgba(19,31,49,.97),rgba(12,20,33,.97));border:1px solid var(--line);border-radius:22px;box-shadow:0 16px 40px rgba(0,0,0,.2)}.card{padding:24px 17px;text-align:center}.icon{width:56px;height:56px;border-radius:16px;background:rgba(247,197,49,.1);color:var(--yellow);display:grid;place-items:center;margin:0 auto 14px;font-size:26px}.card h3{margin:0 0 8px;font-size:18px}.card p{margin:0;color:#9eabb9;line-height:1.5}
+.section{padding:72px 0}.section-title{text-align:center;font-size:38px;margin:0 0 12px}.section-sub{text-align:center;color:var(--muted);max-width:720px;margin:0 auto 38px;line-height:1.7}.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:15px}.card,.hours-card,.contact-card,.social-card{background:linear-gradient(180deg,rgba(19,31,49,.97),rgba(12,20,33,.97));border:1px solid var(--line);border-radius:22px;box-shadow:0 16px 40px rgba(0,0,0,.2)}.card{padding:24px 17px;text-align:center}.icon{width:56px;height:56px;border-radius:16px;background:rgba(247,197,49,.1);color:var(--yellow);display:grid;place-items:center;margin:0 auto 14px;font-size:26px}.card h3{margin:0 0 8px;font-size:18px}.card p{margin:0;color:#9eabb9;line-height:1.5}
 .booking-band{background:linear-gradient(135deg,#171f2c,#0b1320);padding:60px 0;border-block:1px solid rgba(247,197,49,.18)}.booking-box{display:grid;grid-template-columns:1.2fr .8fr;gap:28px;align-items:center}.booking-box h2{font-size:40px;margin:0 0 12px}.booking-box p{font-size:18px;line-height:1.65;margin:0;color:#b4bfcc}.booking-cta{background:rgba(255,255,255,.05);border-radius:22px;padding:24px;border:1px solid var(--line);text-align:center}.booking-cta .btn{width:100%;font-size:18px;padding:16px}.booking-cta small{display:block;color:#8e9baa;margin-top:12px}
+.social-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.social-card{padding:28px;text-align:center}.social-card .bigicon{font-size:52px;margin-bottom:10px}.social-card h3{font-size:27px;margin:0 0 10px}.social-card p{color:#aeb9c7;line-height:1.6;margin:0 0 20px}.social-card .btn{min-width:230px}
 .hours{display:grid;grid-template-columns:1fr 1fr;gap:24px}.hours-card,.contact-card{padding:28px}.hours-card h3,.contact-card h3{margin-top:0;font-size:26px}.hours-row{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:13px 0;font-weight:750;color:#dbe3ec}.hours-row:last-child{border:0}.location{font-size:20px;font-weight:850;line-height:1.55}.phone-big{font-size:32px;font-weight:950;color:var(--yellow);margin:12px 0}.email{display:block;color:#dbe3ec;margin:5px 0 18px;font-weight:700}footer{background:#04070b;padding:30px 0;text-align:center;border-top:1px solid var(--line)}.pay{color:var(--yellow);font-weight:850;margin-top:8px}
-@media(max-width:900px){.hero-grid,.booking-box,.hours{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}.hero{min-height:auto}.hero::before{inset:130px -15% 0 15%;opacity:.07}.nav{align-items:flex-start}.nav-actions{justify-content:flex-end}}
+@media(max-width:900px){.hero-grid,.booking-box,.hours,.social-grid{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}.hero{min-height:auto}.nav{align-items:flex-start}.nav-actions{justify-content:flex-end}}
 @media(max-width:560px){.wrap{width:min(100% - 20px,1180px)}.nav{display:block}.nav-actions{margin-top:14px}.nav-actions .btn{flex:1;padding:12px 10px;font-size:13px}.hero-grid{padding-top:18px;gap:26px;padding-bottom:86px}h1{font-size:51px}.lead{font-size:17px}.cards{grid-template-columns:1fr}.section{padding:50px 0}.section-title{font-size:30px}.booking-box h2{font-size:32px}.phone-big{font-size:27px}.hero-actions .btn{width:100%}.hours-row{font-size:14px;gap:12px}}
 </style>
 </head>
 <body>
 <div class="topbar">Kiskőrös és környéke • Rugalmas időpontok • Korrekt árak</div>
 <header class="hero"><div class="wrap">
-<nav class="nav"><div class="brand">Tokai Alex e.v.<br><span>Autóbérlés sofőrrel</span></div><div class="nav-actions">
-<a class="btn btn-outline" href="tel:+36209500897">📞 Hívás</a>
-<a class="btn btn-outline" href="https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec?oldal=belepes" target="_blank" rel="noopener">🔐 Sofőr belépés</a>
-<a class="btn btn-yellow" href="https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec?oldal=adminbelepes" target="_blank" rel="noopener">⚙️ Admin belépés</a>
-</div></nav>
-<div class="hero-grid"><div><div class="eyebrow">Kiskőrös és környéke</div><h1>Autóbérlés <span class="yellow">SOFŐRREL</span></h1><p class="lead">Kényelmes, megbízható személyszállítás rugalmas időpontokkal, korrekt árakon. Most már online is leadhatod a fuvarrendelést.</p><div class="hero-actions"><a class="btn btn-yellow" href="https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec" target="_blank" rel="noopener">📱 Online fuvarrendelés</a><a class="btn btn-outline" href="#kapcsolat">📍 Kapcsolat</a></div><div class="hero-note">Rugalmas időpontok, korrekt árak – hívj bizalommal!</div></div>
-<div class="phone-card"><div class="phone-top"><div class="small">MOST MÁR</div><div class="big">ONLINE IS <span>RENDELHETSZ!</span></div></div><div class="phone-body"><div class="phone-row"><span class="check">✓</span> Gyors rendelés mobilról</div><div class="phone-row"><span class="check">✓</span> Dátum és időpont kiválasztása</div><div class="phone-row"><span class="check">✓</span> Indulási cím és cél megadása</div><div class="phone-row"><span class="check">✓</span> Foglalás állapotának követése</div></div></div>
-</div></div></header>
+<nav class="nav">
+  <div class="brand">Tokai Alex e.v.<br><span>Autóbérlés sofőrrel</span></div>
+  <div class="nav-actions">
+    <a class="btn btn-outline" href="tel:+36209500897">📞 Hívás</a>
+    <a class="btn btn-fb" href="https://www.facebook.com/profile.php?id=61561092844821" target="_blank" rel="noopener">📘 Facebook</a>
+    <a class="btn btn-outline" href="https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec?oldal=belepes" target="_blank" rel="noopener">🔐 Sofőr belépés</a>
+    <a class="btn btn-yellow" href="https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec?oldal=adminbelepes" target="_blank" rel="noopener">⚙️ Admin belépés</a>
+  </div>
+</nav>
+<div class="hero-grid">
+  <div>
+    <div class="eyebrow">Kiskőrös és környéke</div>
+    <h1>Autóbérlés <span class="yellow">SOFŐRREL</span></h1>
+    <p class="lead">Kényelmes, megbízható személyszállítás rugalmas időpontokkal, korrekt árakon. Online rendelés, várakozási sorrend és élő sofőrkövetés.</p>
+    <div class="hero-actions">
+      <a class="btn btn-yellow" href="https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec" target="_blank" rel="noopener">📱 Online fuvarrendelés</a>
+      <a class="btn btn-outline" href="https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec?oldal=ertekeles" target="_blank" rel="noopener">⭐ Értékelés</a>
+      <a class="btn btn-outline" href="#kapcsolat">📍 Kapcsolat</a>
+    </div>
+    <div class="hero-note">Rugalmas időpontok, korrekt árak – hívj bizalommal!</div>
+  </div>
+  <div class="phone-card">
+    <div class="phone-top"><div class="small">ONLINE RENDSZER</div><div class="big">RENDELÉS ÉS <span>ÉLŐ KÖVETÉS</span></div></div>
+    <div class="phone-body">
+      <div class="phone-row"><span class="check">✓</span> Gyors rendelés mobilról</div>
+      <div class="phone-row"><span class="check">✓</span> Minél hamarabb vagy időpontra</div>
+      <div class="phone-row"><span class="check">✓</span> Várakozási hely követése</div>
+      <div class="phone-row"><span class="check">✓</span> Sofőr élő GPS-helyzete</div>
+    </div>
+  </div>
+</div>
+</div></header>
+
 <main>
-<section class="section"><div class="wrap"><h2 class="section-title">Miben tudunk segíteni?</h2><p class="section-sub">Egyszerű személyszállítás sofőrrel, előre egyeztetett vagy online lefoglalt időpontban.</p><div class="cards"><div class="card"><div class="icon">✚</div><h3>Orvos / gyógyszertár</h3><p>Eljutás és hazaszállítás megbeszélt időpontban.</p></div><div class="card"><div class="icon">🛒</div><h3>Bevásárlás</h3><p>Kényelmes segítség a mindennapi ügyintézéshez.</p></div><div class="card"><div class="icon">💍</div><h3>Esküvő / rendezvény</h3><p>Utazás oda és vissza előre lefoglalható időponttal.</p></div><div class="card"><div class="icon">🎉</div><h3>Házibuli</h3><p>Utazás előre egyeztetett időpontban.</p></div><div class="card"><div class="icon">✈</div><h3>Repülőtér</h3><p>Előre egyeztetett reptéri fuvar csomagokkal is.</p></div></div></div></section>
-<section class="booking-band" id="rendeles"><div class="wrap booking-box"><div><h2>📱 Online fuvarrendelés</h2><p>Válaszd ki az indulási címet, a célt, a dátumot és az időpontot. A rendelés bekerül a rendszerbe, és követheted annak állapotát is.</p></div><div class="booking-cta"><a class="btn btn-yellow" href="https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec" target="_blank" rel="noopener">🚕 FUVAR RENDELÉSE</a><small>A rendelési felület új lapon nyílik meg.</small></div></div></section>
-<section class="section" id="kapcsolat"><div class="wrap hours"><div class="hours-card"><h3>🕒 Elérhetőség</h3><div class="hours-row"><span>Hétfő–Csütörtök</span><span>08:00–23:00</span></div><div class="hours-row"><span>Péntek</span><span>08:00–04:00</span></div><div class="hours-row"><span>Szombat</span><span>08:00–04:00</span></div><div class="hours-row"><span>Vasárnap</span><span>11:00–23:00</span></div></div><div class="contact-card"><h3>📍 Kapcsolat</h3><div class="location">Bács-Kiskun megye<br>6200 Kiskőrös</div><div class="phone-big">+36 20 950 0897</div><a class="email" href="mailto:autoberlessoforrelkiskoros@gmail.com">✉️ autoberlessoforrelkiskoros@gmail.com</a><a class="btn btn-yellow" href="tel:+36209500897">📞 Hívj most</a></div></div></section>
+<section class="section">
+  <div class="wrap">
+    <h2 class="section-title">Miben tudunk segíteni?</h2>
+    <p class="section-sub">Egyszerű személyszállítás sofőrrel, előre egyeztetett vagy online lefoglalt időpontban.</p>
+    <div class="cards">
+      <div class="card"><div class="icon">✚</div><h3>Orvos / gyógyszertár</h3><p>Eljutás és hazaszállítás megbeszélt időpontban.</p></div>
+      <div class="card"><div class="icon">🛒</div><h3>Bevásárlás</h3><p>Kényelmes segítség a mindennapi ügyintézéshez.</p></div>
+      <div class="card"><div class="icon">💍</div><h3>Esküvő / rendezvény</h3><p>Utazás oda és vissza előre lefoglalható időponttal.</p></div>
+      <div class="card"><div class="icon">🎉</div><h3>Házibuli</h3><p>Utazás előre egyeztetett időpontban.</p></div>
+      <div class="card"><div class="icon">✈</div><h3>Repülőtér</h3><p>Előre egyeztetett reptéri fuvar csomagokkal is.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="booking-band" id="rendeles">
+  <div class="wrap booking-box">
+    <div><h2>📱 Online fuvarrendelés</h2><p>Add le a rendelést online, majd kövesd a helyedet a sorban. Ha egy sofőr elvállalja, a külön követőoldalon az élő GPS-helyzetét is láthatod.</p></div>
+    <div class="booking-cta"><a class="btn btn-yellow" href="https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec" target="_blank" rel="noopener">🚗 FUVAR RENDELÉSE</a><small>A rendelési felület új lapon nyílik meg.</small></div>
+  </div>
+</section>
+
+<section class="section" id="kozosseg">
+  <div class="wrap">
+    <h2 class="section-title">Vélemény és közösség</h2>
+    <p class="section-sub">Mondd el, milyen volt a szolgáltatás, vagy kövess minket Facebookon.</p>
+    <div class="social-grid">
+      <div class="social-card">
+        <div class="bigicon">⭐</div>
+        <h3>Értékeld a szolgáltatást</h3>
+        <p>1–5 csillaggal és szöveges véleménnyel is értékelhetsz. A jóváhagyott értékelések megjelennek az értékelőoldalon.</p>
+        <a class="btn btn-yellow" href="https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec?oldal=ertekeles" target="_blank" rel="noopener">⭐ ÉRTÉKELÉS ÍRÁSA</a>
+      </div>
+      <div class="social-card">
+        <div class="bigicon">📘</div>
+        <h3>Facebook</h3>
+        <p>Aktuális információkért és bejegyzésekért keresd fel Facebook-oldalunkat.</p>
+        <a class="btn btn-fb" href="https://www.facebook.com/profile.php?id=61561092844821" target="_blank" rel="noopener">📘 FACEBOOK OLDAL</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="kapcsolat">
+  <div class="wrap hours">
+    <div class="hours-card">
+      <h3>🕒 Elérhetőség</h3>
+      <div class="hours-row"><span>Hétfő–Csütörtök</span><span>08:00–23:00</span></div>
+      <div class="hours-row"><span>Péntek</span><span>08:00–04:00</span></div>
+      <div class="hours-row"><span>Szombat</span><span>08:00–04:00</span></div>
+      <div class="hours-row"><span>Vasárnap</span><span>11:00–23:00</span></div>
+    </div>
+    <div class="contact-card">
+      <h3>📍 Kapcsolat</h3>
+      <div class="location">Bács-Kiskun megye<br>6200 Kiskőrös</div>
+      <div class="phone-big">+36 20 950 0897</div>
+      <a class="email" href="mailto:autoberlessoforrelkiskoros@gmail.com">✉️ autoberlessoforrelkiskoros@gmail.com</a>
+      <a class="btn btn-yellow" href="tel:+36209500897">📞 Hívj most</a>
+    </div>
+  </div>
+</section>
 </main>
+
 <footer><div class="wrap"><strong>Tokai Alex e.v. • Autóbérlés sofőrrel – Kiskőrös</strong><div class="pay">Készpénz • Bankkártya • Google Pay • Apple Pay</div></div></footer>
-</body></html>
+</body>
+</html>
