@@ -23,6 +23,14 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;back
 .hero:before{content:""!important;position:absolute!important;inset:0!important;background:url('/logo.png') 82% 48%/min(680px,52vw) auto no-repeat!important;opacity:.055!important;filter:none!important;transform:none!important;pointer-events:none!important;z-index:0!important}
 main,footer{position:relative;z-index:1}
 @media(max-width:900px){.hero:before{background-position:center 42%!important;background-size:min(620px,88vw) auto!important;opacity:.04!important}body:before{background-size:88vw auto}}
+</style><style>
+/* subtle uploaded-logo watermark across the public homepage */
+body{position:relative;background:#070b12}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background-image:url('/logo.png');background-repeat:no-repeat;background-position:center 46%;background-size:min(760px,72vw);opacity:.035;filter:grayscale(15%);mix-blend-mode:screen}
+.hero,.section,.booking-band,footer{position:relative;z-index:1}
+.hero::before{content:"";position:absolute;inset:0;pointer-events:none;background:url('/logo.png') no-repeat 78% 48%/min(620px,48vw);opacity:.055;filter:grayscale(10%)}
+.hero .wrap{position:relative;z-index:2}
+@media(max-width:760px){body::before{background-size:92vw;opacity:.028}.hero::before{background-position:center 55%;background-size:92vw;opacity:.04}}
 </style></head><body>
 <div class="topbar">🎁 REGISZTRÁLJ ÉS GYŰJTS PONTOKAT • MINDEN TELJESÍTETT FUVAR = +100 PONT</div>
 <header class="hero"><div class="wrap"><nav class="nav"><div class="brand">Tokai Alex e.v.<br><span>Autóbérlés sofőrrel</span></div><div class="nav-actions"><a class="btn btn-outline" href="/fiok/?tab=login">🔐 Bejelentkezés</a><a class="btn btn-yellow" href="/fiok/?tab=reg">✍️ Regisztráció</a><a class="btn btn-outline" href="tel:+36209500897">📞 Hívás</a><a class="btn btn-fb" href="https://www.facebook.com/profile.php?id=61561092844821" target="_blank" rel="noopener">📘 Facebook</a><a class="btn btn-outline" href="/sofor/">🔐 Sofőr</a><a class="btn btn-outline" href="/admin/?v=20260915-4">⚙️ Admin</a></div></nav>
