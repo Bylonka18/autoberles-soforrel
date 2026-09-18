@@ -17,7 +17,7 @@ body.authMode .yellowBtn{min-height:48px}
 <div class="card"><h3>Pontok beváltása</h3><input id="redeem" type="number" min="1" step="1" placeholder="Pontok száma"><button id="redeemBtn" class="btn yellowBtn" style="width:100%;margin-top:10px">PONTOK BEVÁLTÁSA</button><div id="redeemMsg" class="msg"></div></div>
 <div class="card"><h3>Fuvarjaim</h3><div id="trips" class="muted">Betöltés...</div></div><div class="card"><h3>Ponttörténet</h3><div id="logs" class="muted"></div></div></section></main>
 <script>
-const API='https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec';
+const API='https://zmqfmxcysugdavmmksky.supabase.co/functions/v1/web-api';
 let TOKEN='';
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 function jsonp(m,p={},timeout=30000){return new Promise((resolve,reject)=>{const cb='__u_'+Date.now()+'_'+Math.random().toString(36).slice(2),s=document.createElement('script'),q=new URLSearchParams({api:'1',muvelet:m,callback:cb});Object.entries(p).forEach(([k,v])=>q.set(k,String(v)));const t=setTimeout(()=>{clean();reject(new Error('A belépés túl sokáig tart. Próbáld újra!'))},timeout);function clean(){clearTimeout(t);delete window[cb];s.remove()}window[cb]=d=>{clean();resolve(d)};s.onerror=()=>{clean();reject(new Error('Kapcsolati hiba.'))};s.src=API+'?'+q.toString();document.body.appendChild(s)})}
