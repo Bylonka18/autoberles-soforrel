@@ -5,6 +5,7 @@ const url = Deno.env.get("SUPABASE_URL")!;
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 const db = createClient(url, serviceKey, { auth: { persistSession: false } });
+const legacyUrl = "https://script.google.com/macros/s/AKfycbz_9Rzy2acFm9sOKGJfvghOSt1TO3SCukRd3XJ5j3-YwdqkovGpwflaln63gAEWu74W/exec";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +19,12 @@ function out(data: unknown, callback = "") {
 }
 function clean(v: unknown, max = 500) { return String(v ?? "").trim().slice(0, max); }
 function id() { return crypto.randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase(); }
+async function sha256(v:string){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+function randomHex(bytes=24){const a=crypto.getRandomValues(new Uint8Array(bytes));return [...a].map(x=>x.toString(16).padStart(2,"0")).join("")}
+async function passwordVerifier(clientHash:string,salt:string){return await sha256(`${salt}:${clientHash}`)}
+async function saveCredential(szerepkor:string,felhasznalo:string,clientHash:string,soforId:string|null){const salt=randomHex(18),password_verifier=await passwordVerifier(clientHash,salt);await db.from("login_credentials").upsert({szerepkor,felhasznalo,password_verifier,salt,sofor_id:soforId,aktiv:true,frissitve:new Date().toISOString()},{onConflict:"szerepkor,felhasznalo"})}
+async function issueSession(szerepkor:string,felhasznalo:string,soforId:string|null){const token=randomHex(32);await db.from("login_sessions").insert({token_hash:await sha256(token),szerepkor,felhasznalo,sofor_id:soforId,lejar:new Date(Date.now()+30*24*3600*1000).toISOString()});return token}
+async function legacyLogin(szerepkor:string,felhasznalo:string,clientHash:string){const cb="cb";const q=new URLSearchParams({api:"1",muvelet:szerepkor==="admin"?"adminBelepesHash":"soforBelepesHash",callback:cb,felhasznalo,jelszoHash:clientHash});const r=await fetch(`${legacyUrl}?${q}`);if(!r.ok)return null;const t=await r.text();const m=t.match(/^cb\((.*)\);?\s*$/s);if(!m)return null;try{return JSON.parse(m[1])}catch{return null}}
 function normalizeTrip(x: any, i = 0) {
   return { sor: i + 1, id: x.id, azonosito: x.azonosito, nev: x.nev, telefon: x.telefon, email: x.email, indulas: x.indulas, cel: x.cel,
     datum: x.datum, ido: x.ido?.slice?.(0,5) || x.ido || "", utasok: x.utasok, megjegyzes: x.megjegyzes, statusz: x.statusz,
@@ -25,6 +32,8 @@ function normalizeTrip(x: any, i = 0) {
 }
 async function role(token: string, wanted?: string) {
   if (!token) return null;
+  const {data:session}=await db.from("login_sessions").select("*").eq("token_hash",await sha256(token)).gt("lejar",new Date().toISOString()).maybeSingle();
+  if(session){if(wanted&&session.szerepkor!==wanted)return null;return{szerepkor:session.szerepkor,sofor_id:session.sofor_id,email:"",user_id:null,user:{id:null,user_metadata:{}}}}
   const { data: ud } = await db.auth.getUser(token);
   if (!ud.user) return null;
   const { data } = await db.from("app_roles").select("*").eq("user_id", ud.user.id).maybeSingle();
@@ -45,6 +54,15 @@ async function sendOtp(email: string, redirectTo: string, meta: Record<string,st
 }
 
 async function publicAction(name: string, p: any, origin: string) {
+  if(name==="adminBelepesHash"||name==="soforBelepesHash"){
+    const szerepkor=name==="adminBelepesHash"?"admin":"sofor",felhasznalo=clean(p.felhasznalo,120).toLowerCase(),clientHash=clean(p.jelszoHash,128).toLowerCase();
+    if(!felhasznalo||!/^[a-f0-9]{64}$/.test(clientHash))return{siker:false,uzenet:"Hibás felhasználónév vagy jelszó."};
+    const {data:c}=await db.from("login_credentials").select("*").eq("szerepkor",szerepkor).eq("felhasznalo",felhasznalo).eq("aktiv",true).maybeSingle();
+    let soforId=c?.sofor_id||null,ok=!!c&&await passwordVerifier(clientHash,c.salt)===c.password_verifier,legacy:any=null;
+    if(!c){legacy=await legacyLogin(szerepkor,felhasznalo,clientHash);ok=!!legacy?.siker;if(ok&&szerepkor==="sofor"){const{data:s}=await db.from("soforok").select("id,nev").eq("felhasznalo",felhasznalo).eq("aktiv",true).maybeSingle();soforId=s?.id||null}if(ok)await saveCredential(szerepkor,felhasznalo,clientHash,soforId)}
+    if(!ok)return{siker:false,uzenet:"Hibás felhasználónév vagy jelszó."};
+    const token=await issueSession(szerepkor,felhasznalo,soforId);let nev="";if(soforId){const{data:s}=await db.from("soforok").select("nev").eq("id",soforId).single();nev=s?.nev||legacy?.nev||""}return{siker:true,token,nev};
+  }
   if (name === "onlineRendelesAllapot") {
     const { data } = await db.from("app_beallitasok").select("ertek").eq("kulcs","online_rendeles").maybeSingle();
     return { online: data?.ertek === true };
@@ -152,7 +170,7 @@ async function driverAction(name:string,args:any[],token:string) {
   }
   if(name==="soforUgyfelJavaslatok") {const q=clean(args[0],100);const{data}=await db.from("ugyfelek").select("nev,telefon,email").or(`nev.ilike.%${q}%,telefon.ilike.%${q}%`).limit(8);return{siker:true,lista:data||[]};}
   if(name==="soforFuvarHozzaadas") {const a=args[0]||{}, az=id();const{error}=await db.from("fuvarok").insert({azonosito:az,nev:clean(a.nev,160),telefon:clean(a.telefon,60),email:clean(a.email,240)||null,indulas:clean(a.indulas),cel:clean(a.cel),datum:a.datum,ido:a.ido||null,utasok:Number(a.utasok)||1,megjegyzes:clean(a.megjegyzes,2000),statusz:"Új rendelés"});return error?{siker:false,uzenet:"Nem sikerült menteni."}:{siker:true,uzenet:"Fuvar elmentve."};}
-  if(name==="soforKijelentkezes")return{siker:true};
+  if(name==="soforKijelentkezes"){await db.from("login_sessions").delete().eq("token_hash",await sha256(token));return{siker:true};}
   return{siker:false,uzenet:"Ismeretlen művelet."};
 }
 
@@ -168,7 +186,7 @@ async function adminAction(name:string,args:any[],token:string){
   if(name==="adminSoforDolgozikValtas"){const u=clean(args[0],120),{data}=await db.from("soforok").select("dolgozik").eq("felhasznalo",u).single();await db.from("soforok").update({dolgozik:!data.dolgozik}).eq("felhasznalo",u);return{siker:true};}
   if(name==="adminSoforEmailMentese"){await db.from("soforok").update({email:clean(args[1],240).toLowerCase()}).eq("felhasznalo",clean(args[0],120));return{siker:true,uzenet:"Email elmentve."};}
   if(name==="adminSoforJarmuMentese"){await db.from("soforok").update({auto_tipus:clean(args[1],160),auto_szin:clean(args[2],80),rendszam:clean(args[3],40)}).eq("felhasznalo",clean(args[0],120));return{siker:true,uzenet:"Jármű elmentve."};}
-  if(name==="adminSoforLetrehozasa"){const[u,_pw,email,auto,szin,rsz]=[args[1],args[2],args[3],args[4],args[5],args[6]];const{error}=await db.from("soforok").insert({nev:clean(args[0],160),felhasznalo:clean(u,120),email:clean(email,240).toLowerCase(),auto_tipus:clean(auto,160),auto_szin:clean(szin,80),rendszam:clean(rsz,40)});return error?{siker:false,uzenet:error.message}:{siker:true,uzenet:"Sofőr hozzáadva. Emailes belépést használ."};}
+  if(name==="adminSoforLetrehozasa"){const[u,pw,email,auto,szin,rsz]=[clean(args[1],120).toLowerCase(),clean(args[2],128),args[3],args[4],args[5],args[6]];const{data:s,error}=await db.from("soforok").insert({nev:clean(args[0],160),felhasznalo:u,email:clean(email,240).toLowerCase(),auto_tipus:clean(auto,160),auto_szin:clean(szin,80),rendszam:clean(rsz,40)}).select("id").single();if(!error&&/^[a-f0-9]{64}$/.test(pw))await saveCredential("sofor",u,pw,s.id);return error?{siker:false,uzenet:error.message}:{siker:true,uzenet:"Sofőr hozzáadva."};}
   if(name==="adminSoforTorlese"){await db.from("soforok").update({aktiv:false,dolgozik:false}).eq("felhasznalo",clean(args[0],120));return{siker:true,uzenet:"Sofőr törölve."};}
   if(name==="adminFuvarMentese"){const a=args[0]||{},fid=await tripByRow(a.sor);if(!fid)return{siker:false,uzenet:"Nincs ilyen fuvar."};await db.from("fuvarok").update({nev:clean(a.nev,160),telefon:clean(a.telefon,60),email:clean(a.email,240)||null,indulas:clean(a.indulas),cel:clean(a.cel),datum:a.datum,ido:a.ido||null,utasok:Number(a.utasok)||1,statusz:clean(a.statusz,80),sofor_nev:clean(a.sofor,160)||null,megjegyzes:clean(a.megjegyzes,2000)}).eq("id",fid);return{siker:true,uzenet:"Fuvar módosítva."};}
   if(name==="adminFuvarTorlese"){const fid=await tripByRow(args[0]);if(fid)await db.from("fuvarok").delete().eq("id",fid);return{siker:true};}
