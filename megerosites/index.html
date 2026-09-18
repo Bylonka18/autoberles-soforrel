@@ -65,40 +65,18 @@ document.body.appendChild(s);
 });
 }
 function allapotMutat(v){
-const box=document.getElementById('queue');
-const num=document.getElementById('queueNum');
-const txt=document.getElementById('queueText');
+const box=document.getElementById('queue'),num=document.getElementById('queueNum'),txt=document.getElementById('queueText');
 if(!v||!v.siker){box.style.display='none';return}
 box.style.display='block';
-if(v.statusz==='Új rendelés'){
-const vi=v.varakozasInfo||{};
-if(vi.sorban){
-num.textContent=vi.sorban+'.';
-let alap=vi.sorban===1
-? 'Te következel a minél hamarabb rendelések között.'
-: 'Ennyi a helyed a minél hamarabb rendelések között.';
-if(vi.becsultVarakozasPerc===0){
-alap+=' Becsült várakozás: hamarosan te következel.';
-}else if(Number(vi.becsultVarakozasPerc)>0){
-alap+=' Becsült várakozás: kb. '+vi.becsultVarakozasPerc+' perc';
-if(vi.becsultKezdes) alap+=' (kb. '+vi.becsultKezdes+' körül)';
-alap+='.';
-}
-txt.textContent=alap;
-}else{
-num.textContent='✓';
-txt.textContent='A rendelésed rögzítve van. Időpontra foglalt rendelésnél nincs sorszám.';
-}
-}else if(v.statusz==='Elvállalva'){
-num.textContent='✓';
-txt.textContent=(v.sofor? v.sofor+' elvállalta a fuvarodat.' : 'A fuvarodat elvállalták.')+' Nyisd meg a követést az élő helyzethez.';
-}else if(v.statusz==='Kész'){
-num.textContent='✓';
-txt.textContent='A fuvar teljesítve.';
-}else{
-num.textContent='✓';
-txt.textContent='Rendelés állapota: '+String(v.statusz||'rögzítve');
-}
+const sor=Number(v.sorban||v.varakozasInfo?.sorban||0);
+const perc=v.varakozasPerc??v.menetido??v.varakozasInfo?.becsultVarakozasPerc;
+if(v.statusz==='Elvállalva'){
+if(sor>0){num.textContent=sor+'.';txt.textContent=(v.sofor?v.sofor+' a sofőröd. ':'')+(sor===1?'Te következel a sofőr sorában. ':'Ennyi a helyed a sofőr sorában. ')+(Number(perc)>=0?'Becsült várakozási idő: kb. '+Math.round(Number(perc))+' perc.':'')}
+else{num.textContent='✓';txt.textContent=(v.sofor?v.sofor+' elvállalta a fuvarodat. ':'A fuvarodat elvállalták. ')+'Az élő követésnél megjelenik a várható érkezés.'}
+}else if(v.statusz==='Új rendelés'){
+num.textContent='✓';txt.textContent='A rendelésed rögzítve van. Amint egy sofőr elvállalja, itt megjelenik a sorszámod és a becsült várakozási idő.';
+}else if(v.statusz==='Kész'){num.textContent='✓';txt.textContent='A fuvar teljesítve.'}
+else{num.textContent='✓';txt.textContent='Rendelés állapota: '+String(v.statusz||'rögzítve')}
 }
 async function statusBetolt(id){
 try{
