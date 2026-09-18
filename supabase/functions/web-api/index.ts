@@ -25,6 +25,7 @@ async function passwordVerifier(clientHash:string,salt:string){return await sha2
 async function saveCredential(szerepkor:string,felhasznalo:string,clientHash:string,soforId:string|null){const salt=randomHex(18),password_verifier=await passwordVerifier(clientHash,salt);await db.from("login_credentials").upsert({szerepkor,felhasznalo,password_verifier,salt,sofor_id:soforId,aktiv:true,frissitve:new Date().toISOString()},{onConflict:"szerepkor,felhasznalo"})}
 async function issueSession(szerepkor:string,felhasznalo:string,soforId:string|null){const token=randomHex(32);await db.from("login_sessions").insert({token_hash:await sha256(token),szerepkor,felhasznalo,sofor_id:soforId,lejar:new Date(Date.now()+30*24*3600*1000).toISOString()});return token}
 async function legacyLogin(szerepkor:string,felhasznalo:string,clientHash:string){const cb="cb";const q=new URLSearchParams({api:"1",muvelet:szerepkor==="admin"?"adminBelepesHash":"soforBelepesHash",callback:cb,felhasznalo,jelszoHash:clientHash});const r=await fetch(`${legacyUrl}?${q}`);if(!r.ok)return null;const t=await r.text();const m=t.match(/^cb\((.*)\);?\s*$/s);if(!m)return null;try{return JSON.parse(m[1])}catch{return null}}
+async function legacyWebCall(name:string,args:any[]){const cb="cb";const q=new URLSearchParams({api:"1",muvelet:"webHivas",callback:cb,nev:name,args:encodeURIComponent(JSON.stringify(args))});const r=await fetch(`${legacyUrl}?${q}`);if(!r.ok)return null;const t=await r.text();const m=t.match(/^cb\((.*)\);?\s*$/s);if(!m)return null;try{return JSON.parse(m[1])}catch{return null}}
 function normalizeTrip(x: any, i = 0) {
   return { sor: i + 1, id: x.id, azonosito: x.azonosito, nev: x.nev, telefon: x.telefon, email: x.email, indulas: x.indulas, cel: x.cel,
     datum: x.datum, ido: x.ido?.slice?.(0,5) || x.ido || "", utasok: x.utasok, megjegyzes: x.megjegyzes, statusz: x.statusz,
@@ -33,7 +34,7 @@ function normalizeTrip(x: any, i = 0) {
 async function role(token: string, wanted?: string) {
   if (!token) return null;
   const {data:session}=await db.from("login_sessions").select("*").eq("token_hash",await sha256(token)).gt("lejar",new Date().toISOString()).maybeSingle();
-  if(session){if(wanted&&session.szerepkor!==wanted)return null;return{szerepkor:session.szerepkor,sofor_id:session.sofor_id,email:"",user_id:null,user:{id:null,user_metadata:{}}}}
+  if(session){if(wanted&&session.szerepkor!==wanted)return null;return{szerepkor:session.szerepkor,sofor_id:session.sofor_id,email:session.szerepkor==="ugyfel"?session.felhasznalo:"",user_id:null,user:{id:null,user_metadata:{}}}}
   const { data: ud } = await db.auth.getUser(token);
   if (!ud.user) return null;
   const { data } = await db.from("app_roles").select("*").eq("user_id", ud.user.id).maybeSingle();
@@ -54,6 +55,20 @@ async function sendOtp(email: string, redirectTo: string, meta: Record<string,st
 }
 
 async function publicAction(name: string, p: any, origin: string) {
+  if(name==="torzsFelhasznaloBelepes"){
+    const az=clean(p.args?.[0],240).toLowerCase(),clientHash=clean(p.args?.[1],128).toLowerCase();
+    if(!az||!/^[a-f0-9]{64}$/.test(clientHash))return{siker:false,uzenet:"Hibás email/felhasználónév vagy jelszó."};
+    const legacy=await legacyWebCall("torzsFelhasznaloBelepes",[az,clientHash]);
+    if(!legacy?.siker||!legacy.token)return{siker:false,uzenet:legacy?.uzenet||"Hibás email/felhasználónév vagy jelszó."};
+    const profil=await legacyWebCall("torzsProfilLekerdezese",[legacy.token]),u=profil?.profil;
+    if(!u?.email)return{siker:false,uzenet:"A régi fiók adatait nem sikerült betölteni."};
+    const email=clean(u.email,240).toLowerCase();
+    await db.from("ugyfelek").upsert({legacy_id:clean(u.id,160)||null,nev:clean(u.nev,160),telefon:clean(u.telefon,60),email,pont:Number(u.pont)||0,teljesitett_fuvar:Number(u.teljesitettFuvar)||0,szint:clean(u.szint,40)||"Bronz",frissitve:new Date().toISOString()},{onConflict:"email"});
+    return{siker:true,token:await issueSession("ugyfel",email,null)};
+  }
+  if(name==="torzsFelhasznaloRegisztracio"||name==="torzsRegisztracioMegerosites"){
+    return await legacyWebCall(name,p.args||[])||{siker:false,uzenet:"Kapcsolati hiba."};
+  }
   if(name==="adminBelepesHash"||name==="soforBelepesHash"){
     const szerepkor=name==="adminBelepesHash"?"admin":"sofor",felhasznalo=clean(p.felhasznalo,120).toLowerCase(),clientHash=clean(p.jelszoHash,128).toLowerCase();
     if(!felhasznalo||!/^[a-f0-9]{64}$/.test(clientHash))return{siker:false,uzenet:"Hibás felhasználónév vagy jelszó."};
