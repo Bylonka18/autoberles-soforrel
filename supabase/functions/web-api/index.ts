@@ -84,8 +84,10 @@ async function publicAction(name: string, p: any, origin: string) {
   }
   if (name === "cimJavaslatok") {
     const q = clean(p.keres, 180); if (q.length < 3) return { lista: [] };
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=hu&limit=15&addressdetails=1&accept-language=hu&viewbox=18.8,46.95,19.8,46.30&bounded=0&q=${encodeURIComponent(q)}`, { headers: { "User-Agent": "AutoberlesSoforrel/1.0" } });
-    const a = r.ok ? await r.json() : [];
+    const alap=`format=json&countrycodes=hu&limit=15&addressdetails=1&accept-language=hu&q=${encodeURIComponent(q)}`;
+    let r = await fetch(`https://nominatim.openstreetmap.org/search?${alap}&viewbox=18.8,46.95,19.8,46.30&bounded=1`, { headers: { "User-Agent": "AutoberlesSoforrel/1.0" } });
+    let a = r.ok ? await r.json() : [];
+    if(!Array.isArray(a)||!a.length){r=await fetch(`https://nominatim.openstreetmap.org/search?${alap}`,{headers:{"User-Agent":"AutoberlesSoforrel/1.0"}});a=r.ok?await r.json():[]}
     const tav=(x:any)=>{const lat=Number(x.lat),lon=Number(x.lon),dLat=(lat-46.6214)*Math.PI/180,dLon=(lon-19.2850)*Math.PI/180,p1=46.6214*Math.PI/180,p2=lat*Math.PI/180,h=Math.sin(dLat/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dLon/2)**2;return 6371*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h))};
     return { lista: (Array.isArray(a) ? a : []).sort((x:any,y:any)=>tav(x)-tav(y)).slice(0,6).map((x:any) => ({ cim: x.display_name })) };
   }
