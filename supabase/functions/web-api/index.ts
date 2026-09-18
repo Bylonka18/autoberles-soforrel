@@ -99,12 +99,9 @@ async function publicAction(name: string, p: any, origin: string) {
     if (blocked?.length) return { siker:false,uzenet:"Erről az elérhetőségről nem adható le rendelés." };
     const azonosito = id(), planned = a.rendelesTipus === "idopont";
     const datum = planned && a.datum ? a.datum : new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Budapest"}).format(new Date());
-    const { error } = await db.from("fuvarok").insert({ azonosito, nev:clean(a.nev,160), telefon, email, indulas:clean(a.indulas), cel:clean(a.cel), datum, ido:planned ? clean(a.ido,8) || null : null, utasok:Math.max(1,Math.min(9,Number(a.utasok)||1)), megjegyzes:clean(a.megjegyzes,2000), statusz:"Megerősítésre vár" });
+    const { error } = await db.from("fuvarok").insert({ azonosito, nev:clean(a.nev,160), telefon, email, indulas:clean(a.indulas), cel:clean(a.cel), datum, ido:planned ? clean(a.ido,8) || null : null, utasok:Math.max(1,Math.min(9,Number(a.utasok)||1)), megjegyzes:clean(a.megjegyzes,2000), statusz:"Új rendelés" });
     if (error) return { siker:false,uzenet:"Nem sikerült elmenteni a rendelést." };
-    const redirect = `${origin}/megerosites/?id=${encodeURIComponent(azonosito)}`;
-    const { error: mailError } = await sendOtp(email, redirect, { nev: clean(a.nev,160), telefon });
-    if (mailError) return { siker:false,uzenet:"A rendelés elkészült, de az email küldése nem sikerült." };
-    return { siker:true,foglalasiAzonosito:azonosito,uzenet:"Megerősítő email elküldve." };
+    return { siker:true,foglalasiAzonosito:azonosito,uzenet:"A rendelés sikeresen elküldve a sofőröknek." };
   }
   if (name === "utasAppKovetes") {
     const az = clean(p.id || p.azonosito || p.args?.[0],120);
