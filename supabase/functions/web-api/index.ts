@@ -154,7 +154,9 @@ async function driverAction(name:string,args:any[],token:string) {
   if(name==="soforSajatDolgozikValtas"){await db.from("soforok").update({dolgozik:!s.dolgozik,frissitve:new Date().toISOString()}).eq("id",s.id);return{siker:true,dolgozik:!s.dolgozik};}
   if(name==="ujFuvarokLekerdezese"||name==="soforKezdoAdatok"){
     const {data}=await db.from("fuvarok").select("*").in("statusz",["Új rendelés","Elvállalva"]).gte("datum",new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Budapest"}).format(new Date())).order("datum").order("ido",{nullsFirst:true});
-    const lista=(data||[]).filter((x:any)=>x.statusz==="Új rendelés"||x.sofor_id===s.id).map(normalizeTrip); return name==="soforKezdoAdatok"?{siker:true,nev:s.nev,dolgozik:!!s.dolgozik,munka:{siker:true,dolgozik:!!s.dolgozik},fuvarok:lista}:{siker:true,lista};
+    const now=new Date(), today=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Budapest"}).format(now), cutoff=now.getTime()-2*60*60*1000;
+    const aktiv=(data||[]).filter((x:any)=>{if(x.datum>today)return true;if(x.datum<today)return false;if(x.ido){const planned=new Date(`${x.datum}T${String(x.ido).slice(0,8)}+02:00`).getTime();return planned>=now.getTime()-30*60*1000}return new Date(x.letrehozva).getTime()>=cutoff});
+    const lista=aktiv.filter((x:any)=>x.statusz==="Új rendelés"||x.sofor_id===s.id).map(normalizeTrip); return name==="soforKezdoAdatok"?{siker:true,nev:s.nev,dolgozik:!!s.dolgozik,munka:{siker:true,dolgozik:!!s.dolgozik},fuvarok:lista}:{siker:true,lista};
   }
   if(name==="fuvarElvallalasa"||name==="fuvarKesz"){
     const fid=await tripByRow(args[0],true); if(!fid)return{siker:false,uzenet:"A fuvar nem található."};
