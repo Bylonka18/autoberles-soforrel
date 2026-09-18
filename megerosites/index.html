@@ -21,8 +21,8 @@ button:disabled{opacity:.6;cursor:wait}
 .back{display:none;background:#ffc400;color:#111827}
 .queue{display:none;margin-top:16px;padding:18px;border-radius:18px;background:#0a111c;border:1px solid #304059}
 .queue .label{color:#aeb9c7;font-size:13px;font-weight:850}
-.queue .num{font-size:72px;line-height:1;color:#ffc400;font-weight:1000;margin:8px 0}
-.queue .small{color:#dce5ef;font-weight:850;line-height:1.5}
+.queue .num{font-size:96px;line-height:1;color:#ffc400;font-weight:1000;margin:10px 0;text-shadow:0 0 18px rgba(255,196,0,.22)}
+.queue .small{color:#dce5ef;font-weight:850;line-height:1.5}.queue .eta{display:block;color:#ffc400;font-size:24px;font-weight:1000;margin-top:10px}
 .saved{display:none;margin-top:12px;color:#91a0b5;font-size:13px;line-height:1.45}
 </style>
 </head>
@@ -71,7 +71,7 @@ box.style.display='block';
 const sor=Number(v.sorban||v.varakozasInfo?.sorban||0);
 const perc=v.varakozasPerc??v.menetido??v.varakozasInfo?.becsultVarakozasPerc;
 if(v.statusz==='Elvállalva'){
-if(sor>0){num.textContent=sor+'.';txt.textContent=(v.sofor?v.sofor+' a sofőröd. ':'')+(sor===1?'Te következel a sofőr sorában. ':'Ennyi a helyed a sofőr sorában. ')+(Number(perc)>=0?'Becsült várakozási idő: kb. '+Math.round(Number(perc))+' perc.':'')}
+if(sor>0){num.textContent=sor+'.';txt.textContent=(v.sofor?v.sofor+' a sofőröd. ':'')+(sor===1?'Te következel a sofőr sorában. ':'Ennyi a helyed a sofőr sorában. ')+(Number(perc)>=0?'<span class="eta">Becsült várakozási idő: kb. '+Math.round(Number(perc))+' perc</span>':'')}
 else{num.textContent='✓';txt.textContent=(v.sofor?v.sofor+' elvállalta a fuvarodat. ':'A fuvarodat elvállalták. ')+'Az élő követésnél megjelenik a várható érkezés.'}
 }else if(v.statusz==='Új rendelés'){
 if(sor>0){num.textContent=sor+'.';txt.textContent=(v.elotteRendelesek!=null?'Előtted '+v.elotteRendelesek+' aktív rendelés van. ':'')+(v.szolgalatbanSoforok?'Jelenleg '+v.szolgalatbanSoforok+' sofőr van szolgálatban. ':'')+(Number(perc)>=0?'Becsült várakozási idő: kb. '+Math.round(Number(perc))+' perc.':'')}else{num.textContent='✓';txt.textContent='A rendelésed rögzítve van. Jelenleg nem számolható megbízható várakozási idő.'}
