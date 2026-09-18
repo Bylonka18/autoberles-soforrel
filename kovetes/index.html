@@ -44,6 +44,7 @@ body{margin:0;background:#090d14;color:#f7f8fb;font-family:Arial,Helvetica,sans-
 }
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="wrap">
@@ -142,6 +143,8 @@ let terkep = null;
 let marker = null;
 let utolsoStatusz = "";
 let gpsLekerdezesFolyamatban = false;
+const SB_URL="https://zmqfmxcysugdavmmksky.supabase.co",SB_KEY="sb_publishable_EUCrm17dIJGOTQWAO_hR4w_GLlxbPDr";
+let sb=null,sbGpsChannel=null;
 function szoveg(id, ertek){ const e=document.getElementById(id); if(e)e.textContent=ertek||"–"; }
 function allapotFrissites(){
 if(!FOGLALAS_AZONOSITO){
@@ -294,71 +297,14 @@ u.textContent='Kapcsolati hiba. Próbáld újra!';
 })
 .utasFuvarLemondas(FOGLALAS_AZONOSITO);
 }
-function gpsFrissites(){
-if(utolsoStatusz !== 'Elvállalva' || gpsLekerdezesFolyamatban) return;
-gpsLekerdezesFolyamatban = true;
-google.script.run
-.withSuccessHandler(function(v){
-gpsLekerdezesFolyamatban = false;
-if(!v || !v.siker) return;
-if(v.statusz !== 'Elvállalva') return;
-const gpsVar=document.getElementById('gpsVar');
-const terkepElem=document.getElementById('terkep');
-const info=document.getElementById('gpsInfo');
-if(!v.helyzetEl || !isFinite(Number(v.lat)) || !isFinite(Number(v.lng))){
-gpsVar.style.display='flex';
-terkepElem.style.display='none';
-info.textContent='Várakozás az első GPS-jelre...';
-return;
-}
-const lat=Number(v.lat);
-const lng=Number(v.lng);
-gpsVar.style.display='none';
-terkepElem.style.display='block';
-szoveg('gpsNev', v.sofor ? v.sofor + ' élő helyzete' : 'Sofőr élő helyzete');
-if(typeof L === 'undefined'){
-info.textContent='Térkép betöltése...';
-return;
-}
-if(!terkep){
-terkep=L.map(terkepElem,{
-zoomControl:true,
-attributionControl:true
-}).setView([lat,lng],16);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-maxZoom:19,
-attribution:'© OpenStreetMap'
-}).addTo(terkep);
-marker=L.marker([lat,lng],{
-title:v.sofor||'Sofőr'
-}).addTo(terkep);
-setTimeout(function(){
-try{terkep.invalidateSize();}catch(e){}
-},150);
-}else{
-marker.setLatLng([lat,lng]);
-terkep.panTo([lat,lng],{animate:true,duration:0.5});
-}
-let friss='GPS aktív';
-if(v.frissitve){
-const d=new Date(v.frissitve);
-if(!isNaN(d.getTime())){
-friss='🟢 Frissítve: '+
-String(d.getHours()).padStart(2,'0')+':'+
-String(d.getMinutes()).padStart(2,'0')+':'+
-String(d.getSeconds()).padStart(2,'0');
-}
-}
-info.textContent=friss;
-})
-.withFailureHandler(function(){
-gpsLekerdezesFolyamatban = false;
-})
-.utasAppKovetes(FOGLALAS_AZONOSITO);
-}
+function gpsKirajzol(v){if(!v||!isFinite(Number(v.lat))||!isFinite(Number(v.lng)))return;const w=document.getElementById('gpsVar'),e=document.getElementById('terkep'),info=document.getElementById('gpsInfo'),lat=Number(v.lat),lng=Number(v.lng);w.style.display='none';e.style.display='block';szoveg('gpsNev',v.sofor_nev?v.sofor_nev+' élő helyzete':'Sofőr élő helyzete');if(typeof L==='undefined'){info.textContent='Térkép betöltése...';return}if(!terkep){terkep=L.map(e,{zoomControl:true,attributionControl:true}).setView([lat,lng],16);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(terkep);marker=L.marker([lat,lng],{title:v.sofor_nev||'Sofőr'}).addTo(terkep);setTimeout(()=>{try{terkep.invalidateSize()}catch(x){}},150)}else{marker.setLatLng([lat,lng]);terkep.panTo([lat,lng],{animate:true,duration:.5})}const d=v.frissitve?new Date(v.frissitve):null;info.textContent=d&&!isNaN(d.getTime())?'🟢 Frissítve: '+d.toLocaleTimeString('hu-HU'):'GPS aktív'}
+async function gpsSupabase(){if(utolsoStatusz!=='Elvállalva'||!sb)return false;try{const {data,error}=await sb.rpc('public_trip_location',{p_azonosito:FOGLALAS_AZONOSITO});if(error||!data||!data.length)return false;gpsKirajzol(data[0]);return true}catch(e){return false}}
+async function gpsFrissites(){if(utolsoStatusz!=='Elvállalva'||gpsLekerdezesFolyamatban)return;gpsLekerdezesFolyamatban=true;const ok=await gpsSupabase();gpsLekerdezesFolyamatban=false;if(ok)return;google.script.run.withSuccessHandler(v=>{if(v&&v.siker&&v.statusz==='Elvállalva'&&v.helyzetEl)gpsKirajzol({lat:v.lat,lng:v.lng,frissitve:v.frissitve,sofor_nev:v.sofor})}).utasAppKovetes(FOGLALAS_AZONOSITO)}
+function realtimeGpsIndit(){try{if(!window.supabase)return;sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false}});sbGpsChannel=sb.channel('utas-gps-'+FOGLALAS_AZONOSITO).on('postgres_changes',{event:'*',schema:'public',table:'fuvar_helyzet'},()=>gpsSupabase()).subscribe()}catch(e){}}
+realtimeGpsIndit();
 allapotFrissites();
 setInterval(allapotFrissites,5000);
-setInterval(gpsFrissites,2000);
+setInterval(gpsFrissites,15000);
 </script>
 </body>
 </html>
