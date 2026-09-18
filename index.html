@@ -17,6 +17,12 @@ linear-gradient(145deg,#030914,#071525 58%,#09111d)}
 .reward-card{max-width:520px;margin-left:auto;border:1px solid rgba(247,197,49,.8);box-shadow:0 0 24px rgba(247,197,49,.16),0 30px 80px rgba(0,0,0,.48);backdrop-filter:blur(12px)}
 .hero-note{color:#f7c531}.hero-actions .btn-yellow{box-shadow:0 0 24px rgba(247,197,49,.24)}
 @media(max-width:900px){.hero-grid{grid-template-columns:1fr}.hero:before{left:0;top:250px;font-size:105vw}.reward-card{margin:auto}}
+</style><style>
+/* subtle uploaded logo watermark */
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:url('/logo.png') center 46%/min(760px,72vw) auto no-repeat;opacity:.028;filter:grayscale(.1)}
+.hero:before{content:""!important;position:absolute!important;inset:0!important;background:url('/logo.png') 82% 48%/min(680px,52vw) auto no-repeat!important;opacity:.055!important;filter:none!important;transform:none!important;pointer-events:none!important;z-index:0!important}
+main,footer{position:relative;z-index:1}
+@media(max-width:900px){.hero:before{background-position:center 42%!important;background-size:min(620px,88vw) auto!important;opacity:.04!important}body:before{background-size:88vw auto}}
 </style></head><body>
 <div class="topbar">🎁 REGISZTRÁLJ ÉS GYŰJTS PONTOKAT • MINDEN TELJESÍTETT FUVAR = +100 PONT</div>
 <header class="hero"><div class="wrap"><nav class="nav"><div class="brand">Tokai Alex e.v.<br><span>Autóbérlés sofőrrel</span></div><div class="nav-actions"><a class="btn btn-outline" href="/fiok/?tab=login">🔐 Bejelentkezés</a><a class="btn btn-yellow" href="/fiok/?tab=reg">✍️ Regisztráció</a><a class="btn btn-outline" href="tel:+36209500897">📞 Hívás</a><a class="btn btn-fb" href="https://www.facebook.com/profile.php?id=61561092844821" target="_blank" rel="noopener">📘 Facebook</a><a class="btn btn-outline" href="/sofor/">🔐 Sofőr</a><a class="btn btn-outline" href="/admin/?v=20260915-4">⚙️ Admin</a></div></nav>
