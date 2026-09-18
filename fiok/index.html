@@ -33,5 +33,17 @@ regBtn.onclick=async()=>{if(!privacyOk.checked){authMsg.className='msg err';auth
 redeemBtn.onclick=async()=>{const n=Math.floor(Number(redeem.value||0));if(n<1)return;const v=await call('torzsPontBevaltas',[TOKEN,n]);redeemMsg.className='msg '+(v&&v.siker?'ok':'err');redeemMsg.textContent=v?.uzenet||'Nem sikerült.';if(v&&v.siker)load()};
 logout.onclick=()=>{localStorage.removeItem('utasToken');TOKEN='';location.replace('/')};refresh.onclick=load;
 async function confirmMail(){const kod=new URLSearchParams(location.search).get('megerosites');if(!kod)return;const v=await call('torzsRegisztracioMegerosites',[kod]);authMsg.className='msg '+(v?.siker?'ok':'err');authMsg.textContent=v?.uzenet||'A megerősítés nem sikerült.';if(v?.siker)showAuthTab('login')}
-const AUTH_TAB=new URLSearchParams(location.search).get('tab');TOKEN=localStorage.getItem('utasToken')||'';if(TOKEN)load();else{if(AUTH_TAB==='login'||AUTH_TAB==='reg'){document.body.classList.add('authMode');showAuthTab(AUTH_TAB);loginTab.style.display='none';regTab.style.display='none'}else{showAuthTab('login')}confirmMail()}
+const AUTH_TAB=new URLSearchParams(location.search).get('tab');
+TOKEN=localStorage.getItem('utasToken')||'';
+if(TOKEN){
+  document.body.classList.remove('authMode');
+  load();
+}else{
+  const tab=(AUTH_TAB==='reg')?'reg':'login';
+  document.body.classList.add('authMode');
+  showAuthTab(tab);
+  loginTab.style.display='none';
+  regTab.style.display='none';
+  confirmMail();
+}
 </script></body></html>
