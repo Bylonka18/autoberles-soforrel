@@ -100,7 +100,7 @@ num.textContent='✓';
 txt.textContent='Rendelés állapota: '+String(v.statusz||'rögzítve');
 }
 }
-async function supabaseMegerosit(id){if(!id)return;try{await fetch(SB_URL+'/rest/v1/rpc/public_confirm_booking',{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({p_token:id})})}catch(e){}}async function statusBetolt(id){
+async function supabaseMegerosit(id){if(!id)return;try{await fetch(SB_URL+'/rest/v1/rpc/public_confirm_booking_id',{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({p_azonosito:id})})}catch(e){}}async function statusBetolt(id){
 try{
 const v=await jsonpCall('foglalasAllapotLekerdezese',[id],20000);
 allapotMutat(v);
