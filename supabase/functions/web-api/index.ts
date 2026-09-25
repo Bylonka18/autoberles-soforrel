@@ -98,6 +98,7 @@ async function geocodeAddress(q:string){
  if(parts.length>1){variants.push(parts.slice(0,2).join(", "));variants.push(parts[0]);variants.push(parts[parts.length-1]+", "+parts[0]);variants.push(parts[0]+", "+parts[parts.length-1]);}
  if(/Kék Duna Vendéglő/i.test(raw))variants.push("Kék Duna Vendéglő Kalocsa","Kalocsa Kék Duna Vendéglő");
  if(/Szerencsecsillag Vendégház/i.test(raw))variants.push("Szerencsecsillag Vendégház Kiskőrös","Középcebe tanya Kiskőrös");
+ if(/Auchan/i.test(raw)&&/Kecskemét/i.test(raw))variants.unshift("6000 Kecskemét, Dunaföldvári utca 2");
  for(const v of [...new Set(variants.filter(Boolean))]){try{const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=hu&q="+encodeURIComponent(v),{headers:{"User-Agent":"AutoberlesSoforrel/1.0"}});const a=r.ok?await r.json():[];if(a?.[0]){const p={lat:Number(a[0].lat),lon:Number(a[0].lon),at:Date.now()};etaGeoCache.set(cacheKey,p);return p}}catch{}}
  return null
 }
