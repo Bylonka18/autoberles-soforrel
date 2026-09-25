@@ -303,7 +303,7 @@ async function publicAction(name: string, p: any, origin: string) {
     const az = clean(p.id || p.azonosito || p.args?.[0],120);
     const { data } = await db.from("fuvarok").select("*").eq("azonosito",az).maybeSingle();
     if (!data) return { siker:false,uzenet:"A rendelés nem található." };
-    let auto:any=null;if(data.sofor_id){const {data:sd}=await db.from("soforok").select("nev,auto_tipus,auto_szin,rendszam").eq("id",data.sofor_id).maybeSingle();auto=sd} refreshEtaBg(); return { siker:true,...normalizeTrip(data),sofor:data.sofor_nev||auto?.nev||null,autoTipus:auto?.auto_tipus||null,autoSzin:auto?.auto_szin||null,rendszam:auto?.rendszam||null,menetido:data.menetido_perc,erkezes:data.varhato_erkezes,sorban:data.sorban,varakozasPerc:data.menetido_perc,ajanlottSofor:data.ajanlott_sofor_nev||null };
+    let auto:any=null;if(data.sofor_id){const {data:sd}=await db.from("soforok").select("id,nev,auto_tipus,auto_szin,rendszam").eq("id",data.sofor_id).maybeSingle();auto=sd} if(data.statusz==="Elvállalva"&&auto?.id){try{const e=await etaDriver(auto,data);if(e.mins!==null){data.menetido_perc=e.mins;data.sorban=e.jobs+1}}catch(e){console.error("ETA_TRACK",e)}} refreshEtaBg(); return { siker:true,...normalizeTrip(data),sofor:data.sofor_nev||auto?.nev||null,autoTipus:auto?.auto_tipus||null,autoSzin:auto?.auto_szin||null,rendszam:auto?.rendszam||null,menetido:data.menetido_perc,erkezes:data.varhato_erkezes,sorban:data.sorban,varakozasPerc:data.menetido_perc,ajanlottSofor:data.ajanlott_sofor_nev||null };
   }
   if (name === "tripLocation") {
     const az=clean(p.azonosito||p.id,120);
