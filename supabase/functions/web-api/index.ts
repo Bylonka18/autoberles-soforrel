@@ -104,7 +104,18 @@ async function geocodeAddress(q:string){
 }
 async function routeMinutes(a:string,b:string){if(!a||!b)return 0;const [x,y]=await Promise.all([geocodeAddress(a),geocodeAddress(b)]);if(!x||!y)return 0;const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${x.lon},${x.lat};${y.lon},${y.lat}?overview=false`,{headers:{"User-Agent":"AutoberlesSoforrel/1.0"}});const j=r.ok?await r.json():null;return j?.routes?.[0]?.duration?Math.max(1,Math.ceil(Number(j.routes[0].duration)/60)):0}
 async function routeCoords(a:any,b:any){if(!a||!b)return 0;try{const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${Number(a.lng??a.lon)},${Number(a.lat)};${Number(b.lng??b.lon)},${Number(b.lat)}?overview=false`,{headers:{"User-Agent":"AutoberlesSoforrel/1.0"}});const j=r.ok?await r.json():null;return j?.routes?.[0]?.duration?Math.max(1,Math.ceil(Number(j.routes[0].duration)/60)):0}catch{return 0}}
-async function etaGps(live:any,addr:string){const p=await geocodeAddress(addr);return p?await routeCoords(live,p):0}
+async function etaGps(live:any,addr:string){
+ const p=await geocodeAddress(addr);if(!p)return 0;
+ const road=await routeCoords(live,p);
+ const lat1=Number(live?.lat),lon1=Number(live?.lng??live?.lon),lat2=Number(p.lat),lon2=Number(p.lon);
+ const rad=Math.PI/180,dlat=(lat2-lat1)*rad,dlon=(lon2-lon1)*rad;
+ const a=Math.sin(dlat/2)**2+Math.cos(lat1*rad)*Math.cos(lat2*rad)*Math.sin(dlon/2)**2;
+ const km=6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+ // Az OSRM néha hibásan 1 percet ad városi pontokra. Ilyenkor a légvonalból
+ // konzervatív városi menetidő minimumot használunk, hogy ne jelenjen meg irreális ETA.
+ const cityFloor=km>0.15?Math.max(2,Math.ceil(km/30*60)):1;
+ return road>0?Math.max(road,cityFloor):cityFloor
+}
 async function etaDriver(driver:any,target:any){
  const {data:jobs}=await db.from("fuvarok").select("id,indulas,cel,letrehozva").eq("sofor_id",driver.id).eq("statusz","Elvállalva").order("letrehozva");
  const {data:live}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",driver.id).gte("frissitve",new Date(Date.now()-180000).toISOString()).maybeSingle();
