@@ -107,7 +107,8 @@ async function etaGps(live:any,addr:string){const p=await geocodeAddress(addr);r
 async function etaDriver(driver:any,target:any){
  const {data:jobs}=await db.from("fuvarok").select("id,indulas,cel,letrehozva").eq("sofor_id",driver.id).eq("statusz","Elvállalva").order("letrehozva");
  const {data:live}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",driver.id).gte("frissitve",new Date(Date.now()-180000).toISOString()).maybeSingle();
- const js=(jobs||[]).filter((x:any)=>x.id!==target?.id);let mins=0,last:string|null=null;
+ const all=jobs||[],targetIndex=all.findIndex((x:any)=>x.id===target?.id);
+ const js=targetIndex>=0?all.slice(0,targetIndex):all;let mins=0,last:string|null=null;
  if(js.length){
    if(live)mins+=await etaGps(live,js[0].indulas);
    mins+=(await routeMinutes(js[0].indulas,js[0].cel))||30;last=js[0].cel;
