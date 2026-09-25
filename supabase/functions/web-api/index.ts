@@ -29,7 +29,9 @@ async function legacyWebCall(name:string,args:any[]){const cb="cb";const q=new U
 function normalizeTrip(x: any, i = 0) {
   return { sor: i + 1, id: x.id, azonosito: x.azonosito, nev: x.nev, telefon: x.telefon, email: x.email, indulas: x.indulas, cel: x.cel,
     datum: x.datum, ido: x.ido?.slice?.(0,5) || x.ido || "", utasok: x.utasok, megjegyzes: x.megjegyzes, statusz: x.statusz,
-    sofor: x.sofor_nev || "", menetido: x.menetido_perc || 0, erkezes: x.varhato_erkezes?.slice?.(0,5) || "", letrehozva: x.letrehozva };
+    sofor: x.sofor_nev || "", menetido: x.menetido_perc ?? null, varakozasPerc: x.menetido_perc ?? null, erkezes: x.varhato_erkezes?.slice?.(0,5) || "", sorban: x.sorban ?? null,
+    ajanlas: x.ajanlott_sofor_nev ? { nev:x.ajanlott_sofor_nev, szabad:(Number(x.sorban)>1?"Fuvarban":"Most szabad"), indok:(Number.isFinite(Number(x.menetido_perc))?"Várható felvétel: kb. "+Number(x.menetido_perc)+" perc":"") } : null,
+    etaFrissitve:x.eta_frissitve || null, letrehozva: x.letrehozva };
 }
 async function role(token: string, wanted?: string) {
   if (!token) return null;
@@ -53,6 +55,69 @@ async function sendOtp(email: string, redirectTo: string, meta: Record<string,st
   const auth = createClient(url, anonKey, { auth: { persistSession: false } });
   return await auth.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo, data: meta, shouldCreateUser: true } });
 }
+
+const geoCache=new Map<string,{lat:number,lng:number,at:number}>();
+async function geocodeAddress(address:string){
+  const key=clean(address,500).toLowerCase(); if(!key)return null;
+  const cached=geoCache.get(key); if(cached&&Date.now()-cached.at<6*3600*1000)return cached;
+  try{
+    const q=new URLSearchParams({format:"json",limit:"1",countrycodes:"hu",q:address});
+    const r=await fetch("https://nominatim.openstreetmap.org/search?"+q,{headers:{"User-Agent":"AutoberlesSoforrel/1.0"}});
+    const a=r.ok?await r.json():[]; if(!a?.[0])return null;
+    const p={lat:Number(a[0].lat),lng:Number(a[0].lon),at:Date.now()}; geoCache.set(key,p); return p;
+  }catch{return null}
+}
+async function routeMinutes(points:Array<{lat:number,lng:number}>){
+  if(points.length<2)return 0;
+  try{
+    const coords=points.map(p=>p.lng+","+p.lat).join(";");
+    const r=await fetch("https://router.project-osrm.org/route/v1/driving/"+coords+"?overview=false&steps=false");
+    const j=r.ok?await r.json():null; const sec=Number(j?.routes?.[0]?.duration);
+    return Number.isFinite(sec)?Math.max(1,Math.ceil(sec/60)):null;
+  }catch{return null}
+}
+let etaRunning=false;
+async function recalculateEtas(){
+  if(etaRunning)return; etaRunning=true;
+  try{
+    const now=new Date(),today=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Budapest"}).format(now);
+    const [{data:drivers},{data:locs},{data:trips}]=await Promise.all([
+      db.from("soforok").select("id,nev").eq("aktiv",true).eq("dolgozik",true),
+      db.from("sofor_helyzet").select("sofor_id,lat,lng,frissitve").gte("frissitve",new Date(Date.now()-180000).toISOString()),
+      db.from("fuvarok").select("*").eq("datum",today).is("ido",null).in("statusz",["Új rendelés","Elvállalva"]).order("letrehozva")
+    ]);
+    const fresh=new Map((locs||[]).map((x:any)=>[x.sofor_id,x]));
+    const working=(drivers||[]).filter((d:any)=>fresh.has(d.id));
+    if(!working.length)return;
+    const accepted=(trips||[]).filter((x:any)=>x.statusz==="Elvállalva"&&x.sofor_id);
+    const open=(trips||[]).filter((x:any)=>x.statusz==="Új rendelés");
+    const queues=new Map<string,any[]>(); for(const d of working)queues.set(d.id,accepted.filter((x:any)=>x.sofor_id===d.id));
+    const addr=new Map<string,any>();
+    for(const t of trips||[]){for(const a of [t.indulas,t.cel])if(a&&!addr.has(a)){await new Promise(r=>setTimeout(r,120));addr.set(a,await geocodeAddress(a));}}
+    const updates:any[]=[];
+    for(const d of working){
+      const l:any=fresh.get(d.id), q=queues.get(d.id)||[]; let points=[{lat:Number(l.lat),lng:Number(l.lng)}];
+      for(let i=0;i<q.length;i++){
+        const t=q[i],pick=addr.get(t.indulas),dest=addr.get(t.cel); if(!pick)continue;
+        const eta=await routeMinutes([...points,pick]); if(eta!==null)updates.push({id:t.id,menetido_perc:eta,sorban:i+1,ajanlott_sofor_id:d.id,ajanlott_sofor_nev:d.nev});
+        points.push(pick); if(dest)points.push(dest);
+      }
+    }
+    for(const t of open){
+      const pick=addr.get(t.indulas); if(!pick)continue; let best:any=null;
+      for(const d of working){
+        const l:any=fresh.get(d.id),q=queues.get(d.id)||[]; const points=[{lat:Number(l.lat),lng:Number(l.lng)}];
+        for(const x of q){const p=addr.get(x.indulas),z=addr.get(x.cel);if(p)points.push(p);if(z)points.push(z)}
+        points.push(pick); const eta=await routeMinutes(points);
+        if(eta!==null&&(!best||eta<best.eta))best={eta,d,sor:q.length+1};
+      }
+      if(best)updates.push({id:t.id,menetido_perc:best.eta,sorban:best.sor,ajanlott_sofor_id:best.d.id,ajanlott_sofor_nev:best.d.nev});
+    }
+    const stamp=new Date().toISOString();
+    await Promise.all(updates.map(u=>db.from("fuvarok").update({menetido_perc:u.menetido_perc,sorban:u.sorban,ajanlott_sofor_id:u.ajanlott_sofor_id,ajanlott_sofor_nev:u.ajanlott_sofor_nev,eta_frissitve:stamp}).eq("id",u.id)));
+  }catch(e){console.error("ETA recalculation failed",e)}finally{etaRunning=false}
+}
+function refreshEtaInBackground(){try{EdgeRuntime.waitUntil(recalculateEtas())}catch{recalculateEtas()}}
 
 async function publicAction(name: string, p: any, origin: string) {
   if(name==="torzsFelhasznaloBelepes"){
@@ -101,13 +166,13 @@ async function publicAction(name: string, p: any, origin: string) {
     const datum = planned && a.datum ? a.datum : new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Budapest"}).format(new Date());
     const { error } = await db.from("fuvarok").insert({ azonosito, nev:clean(a.nev,160), telefon, email, indulas:clean(a.indulas), cel:clean(a.cel), datum, ido:planned ? clean(a.ido,8) || null : null, utasok:Math.max(1,Math.min(9,Number(a.utasok)||1)), megjegyzes:clean(a.megjegyzes,2000), statusz:"Új rendelés" });
     if (error) return { siker:false,uzenet:"Nem sikerült elmenteni a rendelést." };
-    return { siker:true,foglalasiAzonosito:azonosito,uzenet:"A rendelés sikeresen elküldve a sofőröknek." };
+    refreshEtaInBackground(); return { siker:true,foglalasiAzonosito:azonosito,uzenet:"A rendelés sikeresen elküldve a sofőröknek." };
   }
   if (name === "utasAppKovetes") {
     const az = clean(p.id || p.azonosito || p.args?.[0],120);
     const { data } = await db.from("fuvarok").select("*").eq("azonosito",az).maybeSingle();
     if (!data) return { siker:false,uzenet:"A rendelés nem található." };
-    return { siker:true,...normalizeTrip(data),sofor:data.sofor_nev,menetido:data.menetido_perc,erkezes:data.varhato_erkezes };
+    refreshEtaInBackground(); return { siker:true,...normalizeTrip(data),sofor:data.sofor_nev,menetido:data.menetido_perc,varakozasPerc:data.menetido_perc,erkezes:data.varhato_erkezes };
   }
   if (name === "tripLocation") {
     const az=clean(p.azonosito||p.id,120);
@@ -171,7 +236,7 @@ async function driverAction(name:string,args:any[],token:string) {
     const {data}=await db.from("fuvarok").select("*").in("statusz",["Új rendelés","Elvállalva"]).gte("datum",new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Budapest"}).format(new Date())).order("datum").order("ido",{nullsFirst:true});
     const now=new Date(), today=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Budapest"}).format(now), cutoff=now.getTime()-2*60*60*1000;
     const aktiv=(data||[]).filter((x:any)=>{if(x.datum>today)return true;if(x.datum<today)return false;if(x.ido){const planned=new Date(`${x.datum}T${String(x.ido).slice(0,8)}+02:00`).getTime();return planned>=now.getTime()-30*60*1000}return new Date(x.letrehozva).getTime()>=cutoff});
-    const lista=aktiv.filter((x:any)=>x.statusz==="Új rendelés"||x.sofor_id===s.id).map(normalizeTrip); return name==="soforKezdoAdatok"?{siker:true,nev:s.nev,dolgozik:!!s.dolgozik,munka:{siker:true,dolgozik:!!s.dolgozik},fuvarok:lista}:{siker:true,lista};
+    refreshEtaInBackground(); const lista=aktiv.filter((x:any)=>x.statusz==="Új rendelés"||x.sofor_id===s.id).map(normalizeTrip); return name==="soforKezdoAdatok"?{siker:true,nev:s.nev,dolgozik:!!s.dolgozik,munka:{siker:true,dolgozik:!!s.dolgozik},fuvarok:lista}:{siker:true,lista};
   }
   if(name==="fuvarElvallalasa"||name==="fuvarKesz"){
     const fid=await tripByRow(args[0],true); if(!fid)return{siker:false,uzenet:"A fuvar nem található."};
@@ -182,8 +247,12 @@ async function driverAction(name:string,args:any[],token:string) {
     await db.from("fuvarok").update({statusz:"Kész"}).eq("id",fid).eq("sofor_id",s.id); return{siker:true};
   }
   if(name==="soforAppHelyzetFrissites"){
-    const [az,lat,lng]=args; const {data:f}=await db.from("fuvarok").select("id").eq("azonosito",clean(az,120)).eq("sofor_id",s.id).eq("statusz","Elvállalva").maybeSingle();
-    if(!f)return{siker:false}; await db.from("fuvar_helyzet").upsert({fuvar_id:f.id,lat:Number(lat),lng:Number(lng),frissitve:new Date().toISOString()});return{siker:true};
+    const [az,lat,lng]=args; const nlat=Number(lat),nlng=Number(lng); if(!Number.isFinite(nlat)||!Number.isFinite(nlng))return{siker:false};
+    let f:any=null; if(clean(az,120)){const q=await db.from("fuvarok").select("id").eq("azonosito",clean(az,120)).eq("sofor_id",s.id).eq("statusz","Elvállalva").maybeSingle();f=q.data}
+    const stamp=new Date().toISOString();
+    await db.from("sofor_helyzet").upsert({sofor_id:s.id,fuvar_id:f?.id||null,lat:nlat,lng:nlng,frissitve:stamp},{onConflict:"sofor_id"});
+    if(f)await db.from("fuvar_helyzet").upsert({fuvar_id:f.id,lat:nlat,lng:nlng,frissitve:stamp});
+    refreshEtaInBackground(); return{siker:true};
   }
   if(name==="soforUgyfelJavaslatok") {const q=clean(args[0],100);const{data}=await db.from("ugyfelek").select("nev,telefon,email").or(`nev.ilike.%${q}%,telefon.ilike.%${q}%`).limit(8);return{siker:true,lista:data||[]};}
   if(name==="soforFuvarHozzaadas") {const a=args[0]||{}, az=id();const{error}=await db.from("fuvarok").insert({azonosito:az,nev:clean(a.nev,160),telefon:clean(a.telefon,60),email:clean(a.email,240)||null,indulas:clean(a.indulas),cel:clean(a.cel),datum:a.datum,ido:a.ido||null,utasok:Number(a.utasok)||1,megjegyzes:clean(a.megjegyzes,2000),statusz:"Új rendelés"});return error?{siker:false,uzenet:"Nem sikerült menteni."}:{siker:true,uzenet:"Fuvar elmentve."};}
