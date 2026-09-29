@@ -93,7 +93,12 @@ async function notifyWorkingDrivers(f:any){const {data:drivers}=await db.from("s
 const etaGeoCache=new Map<string,{lat:number,lon:number,at:number}>();
 async function geocodeAddress(q:string){
  const cacheKey=String(q||"").trim().toLocaleLowerCase("hu-HU");const cached=etaGeoCache.get(cacheKey);if(cached&&Date.now()-cached.at<6*3600*1000)return cached;
- const raw=String(q||"").trim(),variants=[raw,raw.replace(/,?\s*\d{4}\s+Magyarország\s*$/i,""),raw.replace(/\bu\.\s*/gi,"utca ")];
+ const raw=String(q||"").trim();
+ // A magyar címeknél a település/irányítószám sorrendet normalizáljuk, mert a Nominatim
+ // különben rövid utcaneveknél téves pontot adhat vissza, ami irreális 1 perces ETA-t okoz.
+ const m=raw.match(/^([^,]+),\s*(.+?),\s*(\d{4})(?:\s*,?\s*Magyarország)?$/i);
+ const canonical=m?`${m[3]} ${m[1]}, ${m[2]}`:raw;
+ const variants=[canonical,canonical.replace(/\bu\.\s*/gi,"utca "),raw,raw.replace(/,?\s*\d{4}\s+Magyarország\s*$/i,""),raw.replace(/\bu\.\s*/gi,"utca ")];
  const parts=raw.split(",").map((x:string)=>x.trim()).filter(Boolean);
  if(parts.length>1){variants.push(parts.slice(0,2).join(", "));variants.push(parts[0]);variants.push(parts[parts.length-1]+", "+parts[0]);variants.push(parts[0]+", "+parts[parts.length-1]);}
  if(/Kék Duna Vendéglő/i.test(raw))variants.push("Kék Duna Vendéglő Kalocsa","Kalocsa Kék Duna Vendéglő");
