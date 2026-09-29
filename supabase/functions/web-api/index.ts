@@ -122,7 +122,7 @@ async function etaGps(live:any,addr:string){
  return road>0?Math.max(road,cityFloor):cityFloor
 }
 async function etaDriver(driver:any,target:any){
- const {data:jobs}=await db.from("fuvarok").select("id,indulas,cel,letrehozva").eq("sofor_id",driver.id).eq("statusz","Elvállalva").order("letrehozva");
+ const {data:jobs}=await db.from("fuvarok").select("id,indulas,cel,indulas_lat,indulas_lng,cel_lat,cel_lng,letrehozva").eq("sofor_id",driver.id).eq("statusz","Elvállalva").order("letrehozva");
  const {data:live}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",driver.id).gte("frissitve",new Date(Date.now()-180000).toISOString()).maybeSingle();
  const all=jobs||[],targetIndex=all.findIndex((x:any)=>x.id===target?.id);
  const js=targetIndex>=0?all.slice(0,targetIndex):all;let mins=0,last:string|null=null;
@@ -131,7 +131,7 @@ async function etaDriver(driver:any,target:any){
    mins+=(await routeMinutes(js[0].indulas,js[0].cel))||30;last=js[0].cel;
    for(let i=1;i<js.length;i++){mins+=(await routeMinutes(last!,js[i].indulas))||10;mins+=(await routeMinutes(js[i].indulas,js[i].cel))||30;last=js[i].cel}
    mins+=(await routeMinutes(last!,target.indulas))||10;
- }else if(live)mins+=await etaGps(live,target.indulas);
+ }else if(live){const pickup=(Number.isFinite(Number(target?.indulas_lat))&&Number.isFinite(Number(target?.indulas_lng)))?{lat:Number(target.indulas_lat),lon:Number(target.indulas_lng)}:await geocodeAddress(target.indulas);if(pickup)mins+=await routeCoords(live,pickup);else return{mins:null,jobs:0};}
  else return{mins:null,jobs:0};
  return{mins:Math.max(1,Math.round(mins)),jobs:js.length}
 }
@@ -273,7 +273,7 @@ async function publicAction(name: string, p: any, origin: string) {
       }
       if(!vanSzabad)return{siker:false,uzenet:"Erre az időpontra a jelenlegi fuvarok menetideje alapján nincs szabad sofőr. Válassz későbbi időpontot."};
     }
-    const {data:f,error}=await db.from("fuvarok").insert({azonosito,nev:clean(a.nev,160),telefon,email,indulas:clean(a.indulas),cel:clean(a.cel),datum,ido:planned?clean(a.ido,8)||null:null,utasok:Math.max(1,Math.min(9,Number(a.utasok)||1)),megjegyzes:clean(a.megjegyzes,2000),statusz:"Megerősítésre vár"}).select("id,azonosito").single();
+    const {data:f,error}=await db.from("fuvarok").insert({azonosito,nev:clean(a.nev,160),telefon,email,indulas:clean(a.indulas),cel:clean(a.cel),indulas_lat:Number.isFinite(Number(a.indulasLat))?Number(a.indulasLat):null,indulas_lng:Number.isFinite(Number(a.indulasLng))?Number(a.indulasLng):null,cel_lat:Number.isFinite(Number(a.celLat))?Number(a.celLat):null,cel_lng:Number.isFinite(Number(a.celLng))?Number(a.celLng):null,datum,ido:planned?clean(a.ido,8)||null:null,utasok:Math.max(1,Math.min(9,Number(a.utasok)||1)),megjegyzes:clean(a.megjegyzes,2000),statusz:"Megerősítésre vár"}).select("id,azonosito").single();
     if(error||!f)return{siker:false,uzenet:"A rendelést nem sikerült rögzíteni."};
     const raw=randomHex(32),hash=await sha256(raw);
     const {error:te}=await db.from("booking_confirmation_tokens").insert({fuvar_id:f.id,token_hash:hash,expires_at:new Date(Date.now()+24*3600*1000).toISOString()});
