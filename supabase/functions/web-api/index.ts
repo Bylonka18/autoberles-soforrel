@@ -502,16 +502,17 @@ async function driverAction(name:string,args:any[],token:string) {
     const {data:working}=await db.from("soforok").select("id,nev").eq("aktiv",true).eq("dolgozik",true).order("nev");
     const load=new Map<string,number>(); for(const x of aktiv){if(x.statusz==="Elvállalva"&&x.sofor_id)load.set(x.sofor_id,(load.get(x.sofor_id)||0)+1)}
     const ranked=(working||[]).map((d:any)=>({...d,db:load.get(d.id)||0})).sort((a:any,b:any)=>a.db-b.db||String(a.nev).localeCompare(String(b.nev),"hu"));
-    const visszaigazolt=new Set<string>();const vaz=visible.map((x:any)=>x.azonosito).filter(Boolean);if(vaz.length){const{data:ve}=await db.from("fuvar_esemenyek").select("azonosito").in("azonosito",vaz).eq("tipus","rendeles_megkapva");for(const e of ve||[])visszaigazolt.add(e.azonosito)}
+    const visszaigazolt=new Set<string>(),megerkezett=new Set<string>();const vaz=visible.map((x:any)=>x.azonosito).filter(Boolean);if(vaz.length){const{data:ve}=await db.from("fuvar_esemenyek").select("azonosito,tipus").in("azonosito",vaz).in("tipus",["rendeles_megkapva","sofor_megerkezett"]);for(const e of ve||[]){if(e.tipus==="rendeles_megkapva")visszaigazolt.add(e.azonosito);if(e.tipus==="sofor_megerkezett")megerkezett.add(e.azonosito)}}
     refreshEtaBg();
     const lista:any[]=visible.map((x:any)=>{
-      const n:any=normalizeTrip(x);n.rendelesVisszaigazolva=visszaigazolt.has(x.azonosito);
+      const n:any=normalizeTrip(x);n.rendelesVisszaigazolva=visszaigazolt.has(x.azonosito);n.megerkezett=megerkezett.has(x.azonosito);
       n.varakozasPerc=x.menetido_perc??null;n.sorban=x.sorban??null;
       if(x.statusz==="Új rendelés"&&x.ajanlott_sofor_nev)n.ajanlas={nev:x.ajanlott_sofor_nev,szabad:Number(x.sorban)>1?"Fuvarban":"Most szabad",indok:Number.isFinite(Number(x.menetido_perc))?"Várható felvétel: kb. "+Number(x.menetido_perc)+" perc":""};
       return n;
     });
     return name==="soforKezdoAdatok"?{siker:true,nev:s.nev,dolgozik:!!s.dolgozik,munka:{siker:true,dolgozik:!!s.dolgozik},fuvarok:lista}:{siker:true,lista};
   }
+  if(name==="soforMegerkezett"){const fid=await tripByRow(args[0],true);if(!fid)return{siker:false,uzenet:"A fuvar nem található."};const{data:f}=await db.from("fuvarok").select("id,azonosito,email,statusz,sofor_id").eq("id",fid).maybeSingle();if(!f||f.statusz!=="Elvállalva"||f.sofor_id!==s.id)return{siker:false,uzenet:"Csak a saját elvállalt fuvarodnál jelezheted a megérkezést."};const{data:volt}=await db.from("fuvar_esemenyek").select("id").eq("azonosito",f.azonosito).eq("tipus","sofor_megerkezett").limit(1);if(volt?.length)return{siker:true,marJelezve:true,uzenet:"A megérkezést már jelezted az ügyfélnek."};const{error:ee}=await db.from("fuvar_esemenyek").insert({azonosito:f.azonosito,tipus:"sofor_megerkezett"});if(ee)return{siker:false,uzenet:"A megérkezést nem sikerült rögzíteni."};try{await pushCustomer(f.email,"A sofőr megérkezett érted","A sofőr megérkezett a felvételi címre.",{tipus:"sofor_megerkezett",azonosito:f.azonosito})}catch(e){console.error("customer arrived push",e)}return{siker:true,uzenet:"Az ügyfél értesítést kapott: A sofőr megérkezett érted."};}
   if(name==="fuvarElvallalasa"||name==="fuvarKesz"){
     const fid=await tripByRow(args[0],true); if(!fid)return{siker:false,uzenet:"A fuvar nem található."};
     if(name==="fuvarElvallalasa"){
@@ -597,7 +598,7 @@ Deno.serve(async req => {
     const token=clean(p.sessionToken||p.token||req.headers.get("Authorization")?.replace(/^Bearer\s+/i,""),5000);
     let result:any;
     const adminNames=new Set(["onlineRendelesValtas","adminSoforListaLekerdezese","adminFuvarokLekerdezese","adminSoforHelyzetek","adminErtekelesLista","adminTiltolistaLekerdezese","adminFelhasznaloLista","adminSoforDolgozikValtas","adminSoforEmailMentese","adminSoforJarmuMentese","adminSoforLetrehozasa","adminSoforTorlese","adminFuvarMentese","adminFuvarTorlese","adminErtekelesAllapot","adminErtekelesTorles","adminUgyfelTiltasa","adminTiltoFeloldasa","adminFelhasznaloPont","adminFelhasznaloSzerkesztes","adminFelhasznaloTorles","adminNapiOsszesito","adminFuvarArchivum","adminFuvarVisszahelyezese"]);
-    const driverNames=new Set(["soforSajatDolgozikAllapot","soforSajatDolgozikValtas","ujFuvarokLekerdezese","soforKezdoAdatok","fuvarElvallalasa","fuvarKesz","soforAppHelyzetFrissites","soforUgyfelJavaslatok","soforFuvarHozzaadas","soforRendelesMegkapva","soforKijelentkezes","pushTokenMentese"]);
+    const driverNames=new Set(["soforSajatDolgozikAllapot","soforSajatDolgozikValtas","ujFuvarokLekerdezese","soforKezdoAdatok","fuvarElvallalasa","fuvarKesz","soforAppHelyzetFrissites","soforUgyfelJavaslatok","soforFuvarHozzaadas","soforRendelesMegkapva","soforMegerkezett","soforKijelentkezes","pushTokenMentese"]);
     const customerNames=new Set(["torzsProfilLekerdezese","torzsSajatFuvarok","torzsPontBevaltas","torzsProfilModositas","torzsJelszoModositas","torzsKijelentkezes","confirmBooking","pushTokenMentese"]);
     if(adminNames.has(name)||(name==="onlineRendelesAllapot"&&token))result=await adminAction(name,args,token);
     else if(driverNames.has(name))result=await driverAction(name,args,token);
