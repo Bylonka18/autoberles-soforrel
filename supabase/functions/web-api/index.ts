@@ -98,7 +98,7 @@ async function geocodeAddress(q:string){
  // különben rövid utcaneveknél téves pontot adhat vissza, ami irreális 1 perces ETA-t okoz.
  const m=raw.match(/^([^,]+),\s*(.+?),\s*(\d{4})(?:\s*,?\s*Magyarország)?$/i);
  const canonical=m?`${m[3]} ${m[1]}, ${m[2]}`:raw;
- const variants=[canonical,canonical.replace(/\bu\.\s*/gi,"utca "),raw,raw.replace(/,?\s*\d{4}\s+Magyarország\s*$/i,""),raw.replace(/\bu\.\s*/gi,"utca ")];
+ const street=m?m[2].replace(/\bu\.\s*/gi,"utca "):"";\n const structured=m?`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=hu&street=${encodeURIComponent(street)}&city=${encodeURIComponent(m[1])}&postalcode=${encodeURIComponent(m[3])}`:"";\n if(structured)try{const r=await fetch(structured,{headers:{"User-Agent":"AutoberlesSoforrel/1.0"}});const a=r.ok?await r.json():[];if(a?.[0]){const p={lat:Number(a[0].lat),lon:Number(a[0].lon),at:Date.now()};etaGeoCache.set(cacheKey,p);return p}}catch{}\n const variants=[canonical,canonical.replace(/\bu\.\s*/gi,"utca "),raw,raw.replace(/,?\s*\d{4}\s+Magyarország\s*$/i,""),raw.replace(/\bu\.\s*/gi,"utca ")];
  const parts=raw.split(",").map((x:string)=>x.trim()).filter(Boolean);
  if(parts.length>1){variants.push(parts.slice(0,2).join(", "));variants.push(parts[0]);variants.push(parts[parts.length-1]+", "+parts[0]);variants.push(parts[0]+", "+parts[parts.length-1]);}
  if(/Kék Duna Vendéglő/i.test(raw))variants.push("Kék Duna Vendéglő Kalocsa","Kalocsa Kék Duna Vendéglő");
