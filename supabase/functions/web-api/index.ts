@@ -373,6 +373,7 @@ async function publicAction(name: string, p: any, origin: string) {
 async function customerAction(name:string,args:any[],token:string) {
   const r = await role(token); if (!r || r.szerepkor === "sofor") return {siker:false,uzenet:"A munkamenet lejárt."};
   let customerId = r.ugyfel_id;
+  if(name==="pushTokenMentese")return await savePushToken(r,args,"ugyfel");
   if (!customerId) {
     const { data } = await db.from("ugyfelek").select("id").eq("email",r.email).maybeSingle(); customerId=data?.id;
     if (customerId) await db.from("app_roles").update({ugyfel_id:customerId}).eq("user_id",r.user_id);
@@ -444,9 +445,15 @@ async function tripConflict(target:any,assigned:any[]){
  }
  return false
 }
+async function savePushToken(r:any,args:any[],roleName:string){
+  const a=args[0]||{},pt=clean(a.token,4096);if(!pt)return{siker:false,uzenet:"Hiányzó push token."};
+  const row:any={token:pt,szerepkor:roleName,felhasznalo:roleName==="ugyfel"?clean(r.email,240).toLowerCase():null,sofor_id:roleName==="sofor"?r.sofor_id:null,platform:clean(a.platform,30)||"android",aktiv:true,frissitve:new Date().toISOString()};
+  const {error}=await db.from("push_tokens").upsert(row,{onConflict:"token"});return error?{siker:false,uzenet:"Az értesítési token mentése nem sikerült."}:{siker:true};
+}
 async function driverAction(name:string,args:any[],token:string) {
   const r=await role(token,"sofor"); if(!r) return {siker:false,uzenet:"A munkamenet lejárt."};
   const {data:s}=await db.from("soforok").select("*").eq("id",r.sofor_id).single();
+  if(name==="pushTokenMentese")return await savePushToken(r,args,"sofor");
   if(name==="soforKovetkezoSzabad"){
     const {data:drivers}=await db.from("soforok").select("id,nev").eq("aktiv",true).eq("dolgozik",true);
     if(!drivers?.length)return{siker:true,elerheto:false,uzenet:"Nincs szolgálatban sofőr."};
@@ -565,8 +572,8 @@ Deno.serve(async req => {
     const token=clean(p.sessionToken||p.token||req.headers.get("Authorization")?.replace(/^Bearer\s+/i,""),5000);
     let result:any;
     const adminNames=new Set(["onlineRendelesValtas","adminSoforListaLekerdezese","adminFuvarokLekerdezese","adminSoforHelyzetek","adminErtekelesLista","adminTiltolistaLekerdezese","adminFelhasznaloLista","adminSoforDolgozikValtas","adminSoforEmailMentese","adminSoforJarmuMentese","adminSoforLetrehozasa","adminSoforTorlese","adminFuvarMentese","adminFuvarTorlese","adminErtekelesAllapot","adminErtekelesTorles","adminUgyfelTiltasa","adminTiltoFeloldasa","adminFelhasznaloPont","adminFelhasznaloSzerkesztes","adminFelhasznaloTorles","adminNapiOsszesito","adminFuvarArchivum","adminFuvarVisszahelyezese"]);
-    const driverNames=new Set(["soforSajatDolgozikAllapot","soforSajatDolgozikValtas","ujFuvarokLekerdezese","soforKezdoAdatok","fuvarElvallalasa","fuvarKesz","soforAppHelyzetFrissites","soforUgyfelJavaslatok","soforFuvarHozzaadas","soforRendelesMegkapva","soforKijelentkezes"]);
-    const customerNames=new Set(["torzsProfilLekerdezese","torzsSajatFuvarok","torzsPontBevaltas","torzsProfilModositas","torzsJelszoModositas","torzsKijelentkezes","confirmBooking"]);
+    const driverNames=new Set(["soforSajatDolgozikAllapot","soforSajatDolgozikValtas","ujFuvarokLekerdezese","soforKezdoAdatok","fuvarElvallalasa","fuvarKesz","soforAppHelyzetFrissites","soforUgyfelJavaslatok","soforFuvarHozzaadas","soforRendelesMegkapva","soforKijelentkezes","pushTokenMentese"]);
+    const customerNames=new Set(["torzsProfilLekerdezese","torzsSajatFuvarok","torzsPontBevaltas","torzsProfilModositas","torzsJelszoModositas","torzsKijelentkezes","confirmBooking","pushTokenMentese"]);
     if(adminNames.has(name)||(name==="onlineRendelesAllapot"&&token))result=await adminAction(name,args,token);
     else if(driverNames.has(name))result=await driverAction(name,args,token);
     else if(customerNames.has(name)){const t=token||clean(args[0],5000);const customerArgs=(!token&&args.length&&args[0]===t)?args.slice(1):args;result=await customerAction(name,customerArgs,t);}
