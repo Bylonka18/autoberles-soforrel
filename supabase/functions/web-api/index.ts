@@ -611,6 +611,11 @@ Deno.serve(async req => {
     const driverNames=new Set(["soforSajatDolgozikAllapot","soforSajatDolgozikValtas","ujFuvarokLekerdezese","soforKezdoAdatok","fuvarElvallalasa","fuvarKesz","soforAppHelyzetFrissites","soforUgyfelJavaslatok","soforFuvarHozzaadas","soforRendelesMegkapva","soforMegerkezett","soforKijelentkezes","pushTokenMentese"]);
     const customerNames=new Set(["torzsProfilLekerdezese","torzsSajatFuvarok","torzsPontBevaltas","torzsProfilModositas","torzsJelszoModositas","torzsKijelentkezes","confirmBooking","pushTokenMentese"]);
     if(adminNames.has(name)||(name==="onlineRendelesAllapot"&&token))result=await adminAction(name,args,token);
+    else if(name==="pushTokenMentese"){
+      const pr=await role(token);
+      if(!pr)result={siker:false,uzenet:"A munkamenet lejárt."};
+      else result=await savePushToken(pr,args,pr.szerepkor==="sofor"?"sofor":"ugyfel");
+    }
     else if(driverNames.has(name))result=await driverAction(name,args,token);
     else if(customerNames.has(name)){const t=token||clean(args[0],5000);const customerArgs=(!token&&args.length&&args[0]===t)?args.slice(1):args;result=await customerAction(name,customerArgs,t);}
     else result=await publicAction(name,{...p,args},req.headers.get("origin")||"https://autoberlessoforrelkiskoros.hu");
