@@ -166,7 +166,7 @@ async function queueInfo(f:any){
  const {data:d}=await db.from("soforok").select("id,nev").eq("id",f.sofor_id).maybeSingle();if(!d)return{pozicio:null,varakozas:null};
  const {data:list}=await db.from("fuvarok").select("id,letrehozva").eq("sofor_id",f.sofor_id).eq("statusz","Elvállalva").order("letrehozva");
  const js=list||[],idx=js.findIndex((x:any)=>x.id===f.id);
- if(idx<=0){const {data:live}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",f.sofor_id).gte("frissitve",new Date(Date.now()-180000).toISOString()).maybeSingle();return{pozicio:1,varakozas:live?await etaGps(live,f.indulas):null}}
+ if(idx<=0){const {data:live}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",f.sofor_id).gte("frissitve",new Date(Date.now()-180000).toISOString()).maybeSingle();if(!live)return{pozicio:1,varakozas:null};const pickup=(Number.isFinite(Number(f.indulas_lat))&&Number.isFinite(Number(f.indulas_lng)))?{lat:Number(f.indulas_lat),lon:Number(f.indulas_lng)}:await geocodeAddress(f.indulas);return{pozicio:1,varakozas:pickup?await routeCoords(live,pickup):null}}
  const before=await etaDriver(d,f);return{pozicio:idx+1,varakozas:before.mins}
 }
 async function fleetQueueInfo(f:any){
