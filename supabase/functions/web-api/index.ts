@@ -362,10 +362,13 @@ async function customerAction(name:string,args:any[],token:string) {
   if (name === "torzsProfilModositas") {
     const a=args[0]||{},nev=clean(a.nev,160),telefon=clean(a.telefon,60),ujEmail=clean(a.email,240).toLowerCase();
     if(!nev||!telefon||!ujEmail||!ujEmail.includes("@"))return{siker:false,uzenet:"Tölts ki minden adatot helyesen."};
-    const legacy=await legacyWebCall("torzsProfilModositas",[r.email,{nev,telefon,email:ujEmail}]);
-    if(legacy?.siker===false)return legacy;
-    await db.from("ugyfelek").update({nev,telefon,email:ujEmail,frissitve:new Date().toISOString()}).eq("id",customerId);
-    if(ujEmail!==r.email)await db.from("login_sessions").update({felhasznalo:ujEmail}).eq("token_hash",await sha256(token));
+    // Az app saját profilfrissítése közvetlenül a meglévő ügyfélrekordot módosítja.
+    // A legacy web-api ezt a műveletnevet nem engedélyezi, ezért ott "Nem engedélyezett művelet" jött vissza.
+    const {error}=await db.from("ugyfelek").update({nev,telefon,email:ujEmail,frissitve:new Date().toISOString()}).eq("id",customerId);
+    if(error)return{siker:false,uzenet:"Az adatok mentése nem sikerült."};
+    if(ujEmail!==r.email){
+      await db.from("login_sessions").update({felhasznalo:ujEmail}).eq("token_hash",await sha256(token));
+    }
     return{siker:true,uzenet:"Az adatok mentve."};
   }
   if (name === "torzsJelszoModositas") {
