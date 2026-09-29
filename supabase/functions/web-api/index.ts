@@ -194,6 +194,11 @@ async function publicAction(name: string, p: any, origin: string) {
   if(name==="torzsFelhasznaloRegisztracio"||name==="torzsRegisztracioMegerosites"){
     return await legacyWebCall(name,p.args||[])||{siker:false,uzenet:"Kapcsolati hiba."};
   }
+  if(name==="torzsJelszoVisszaallitas"){
+    const email=clean(p.args?.[0],240).toLowerCase();
+    if(!email||!email.includes("@"))return{siker:false,uzenet:"Adj meg érvényes e-mail címet."};
+    return await legacyWebCall("torzsJelszoVisszaallitas",[email])||{siker:false,uzenet:"A jelszó-visszaállítás jelenleg nem érhető el."};
+  }
   if(name==="adminBelepesHash"||name==="soforBelepesHash"){
     const szerepkor=name==="adminBelepesHash"?"admin":"sofor",felhasznalo=clean(p.felhasznalo,120).toLowerCase(),clientHash=clean(p.jelszoHash,128).toLowerCase();
     if(!felhasznalo||!/^[a-f0-9]{64}$/.test(clientHash))return{siker:false,uzenet:"Hibás felhasználónév vagy jelszó."};
@@ -354,6 +359,20 @@ async function customerAction(name:string,args:any[],token:string) {
     const { data } = await db.from("fuvarok").select("*").eq("email",r.email).order("letrehozva",{ascending:false});
     const lista=(data||[]).map(normalizeTrip); return {siker:true,aktiv:lista.filter((x:any)=>["Megerősítésre vár","Új rendelés","Elvállalva"].includes(x.statusz)),elozo:lista.filter((x:any)=>!["Megerősítésre vár","Új rendelés","Elvállalva"].includes(x.statusz)),lista};
   }
+  if (name === "torzsProfilModositas") {
+    const a=args[0]||{},nev=clean(a.nev,160),telefon=clean(a.telefon,60),ujEmail=clean(a.email,240).toLowerCase();
+    if(!nev||!telefon||!ujEmail||!ujEmail.includes("@"))return{siker:false,uzenet:"Tölts ki minden adatot helyesen."};
+    const legacy=await legacyWebCall("torzsProfilModositas",[r.email,{nev,telefon,email:ujEmail}]);
+    if(legacy?.siker===false)return legacy;
+    await db.from("ugyfelek").update({nev,telefon,email:ujEmail,frissitve:new Date().toISOString()}).eq("id",customerId);
+    if(ujEmail!==r.email)await db.from("login_sessions").update({felhasznalo:ujEmail}).eq("token_hash",await sha256(token));
+    return{siker:true,uzenet:"Az adatok mentve."};
+  }
+  if (name === "torzsJelszoModositas") {
+    const regi=clean(args[0],128).toLowerCase(),uj=clean(args[1],128).toLowerCase();
+    if(!/^[a-f0-9]{64}$/.test(regi)||!/^[a-f0-9]{64}$/.test(uj))return{siker:false,uzenet:"Hibás jelszóadat."};
+    return await legacyWebCall("torzsJelszoModositas",[r.email,regi,uj])||{siker:false,uzenet:"A jelszó módosítása jelenleg nem érhető el."};
+  }
   if (name === "torzsPontBevaltas") {
     const n=Math.floor(Number(args[1]??args[0])); const {data:u}=await db.from("ugyfelek").select("pont").eq("id",customerId).single();
     if (!n||n<1||Number(u?.pont||0)<n) return {siker:false,uzenet:"Nincs elég pontod."};
@@ -511,7 +530,7 @@ Deno.serve(async req => {
     let result:any;
     const adminNames=new Set(["onlineRendelesValtas","adminSoforListaLekerdezese","adminFuvarokLekerdezese","adminSoforHelyzetek","adminErtekelesLista","adminTiltolistaLekerdezese","adminFelhasznaloLista","adminSoforDolgozikValtas","adminSoforEmailMentese","adminSoforJarmuMentese","adminSoforLetrehozasa","adminSoforTorlese","adminFuvarMentese","adminFuvarTorlese","adminErtekelesAllapot","adminErtekelesTorles","adminUgyfelTiltasa","adminTiltoFeloldasa","adminFelhasznaloPont","adminFelhasznaloSzerkesztes","adminFelhasznaloTorles","adminNapiOsszesito","adminFuvarArchivum","adminFuvarVisszahelyezese"]);
     const driverNames=new Set(["soforSajatDolgozikAllapot","soforSajatDolgozikValtas","ujFuvarokLekerdezese","soforKezdoAdatok","fuvarElvallalasa","fuvarKesz","soforAppHelyzetFrissites","soforUgyfelJavaslatok","soforFuvarHozzaadas","soforRendelesMegkapva","soforKijelentkezes"]);
-    const customerNames=new Set(["torzsProfilLekerdezese","torzsSajatFuvarok","torzsPontBevaltas","torzsKijelentkezes","confirmBooking"]);
+    const customerNames=new Set(["torzsProfilLekerdezese","torzsSajatFuvarok","torzsPontBevaltas","torzsProfilModositas","torzsJelszoModositas","torzsKijelentkezes","confirmBooking"]);
     if(adminNames.has(name)||(name==="onlineRendelesAllapot"&&token))result=await adminAction(name,args,token);
     else if(driverNames.has(name))result=await driverAction(name,args,token);
     else if(customerNames.has(name)){const t=token||clean(args[0],5000);const customerArgs=(!token&&args.length&&args[0]===t)?args.slice(1):args;result=await customerAction(name,customerArgs,t);}
