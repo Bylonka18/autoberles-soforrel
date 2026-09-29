@@ -181,11 +181,17 @@ async function publicAction(name: string, p: any, origin: string) {
   if(name==="torzsFelhasznaloBelepes"){
     const az=clean(p.args?.[0],240).toLowerCase(),clientHash=clean(p.args?.[1],128).toLowerCase();
     if(!az||!/^[a-f0-9]{64}$/.test(clientHash))return{siker:false,uzenet:"Hibás email/felhasználónév vagy jelszó."};
-    const legacy=await legacyWebCall("torzsFelhasznaloBelepes",[az,clientHash]);
-    if(!legacy?.siker||!legacy.token)return{siker:false,uzenet:legacy?.uzenet||"Hibás email/felhasználónév vagy jelszó."};
-    const profil=await legacyWebCall("torzsProfilLekerdezese",[legacy.token]),u=profil?.profil||{};
+    const {data:local}=await db.from("ugyfelek").select("*").eq("email",az).maybeSingle();
+    let u:any=null;
+    if(local?.jelszo_hash&&local.jelszo_hash===clientHash){
+      u={id:local.legacy_id,nev:local.nev,telefon:local.telefon,email:local.email,pont:local.pont,teljesitettFuvar:local.teljesitett_fuvar,szint:local.szint};
+    }else{
+      const legacy=await legacyWebCall("torzsFelhasznaloBelepes",[az,clientHash]);
+      if(!legacy?.siker||!legacy.token)return{siker:false,uzenet:legacy?.uzenet||"Hibás email/felhasználónév vagy jelszó."};
+      const profil=await legacyWebCall("torzsProfilLekerdezese",[legacy.token]);u=profil?.profil||{};
+    }
     const email=clean(u.email||az,240).toLowerCase();
-    const {data:existing}=await db.from("ugyfelek").select("id").eq("email",email).maybeSingle();
+    const {data:existing}=await db.from("ugyfelek").select("id,jelszo_hash").eq("email",email).maybeSingle();
     if(existing?.id) await db.from("ugyfelek").update({legacy_id:clean(u.id,160)||null,nev:clean(u.nev,160)||email.split("@")[0],telefon:clean(u.telefon,60),pont:Number(u.pont)||0,teljesitett_fuvar:Number(u.teljesitettFuvar)||0,szint:clean(u.szint,40)||"Bronz",frissitve:new Date().toISOString()}).eq("id",existing.id);
     else await db.from("ugyfelek").insert({legacy_id:clean(u.id,160)||null,nev:clean(u.nev,160)||email.split("@")[0],telefon:clean(u.telefon,60),email,pont:Number(u.pont)||0,teljesitett_fuvar:Number(u.teljesitettFuvar)||0,szint:clean(u.szint,40)||"Bronz",frissitve:new Date().toISOString()});
     const token=await issueSession("ugyfel",email,null);
@@ -374,7 +380,13 @@ async function customerAction(name:string,args:any[],token:string) {
   if (name === "torzsJelszoModositas") {
     const regi=clean(args[0],128).toLowerCase(),uj=clean(args[1],128).toLowerCase();
     if(!/^[a-f0-9]{64}$/.test(regi)||!/^[a-f0-9]{64}$/.test(uj))return{siker:false,uzenet:"Hibás jelszóadat."};
-    return await legacyWebCall("torzsJelszoModositas",[r.email,regi,uj])||{siker:false,uzenet:"A jelszó módosítása jelenleg nem érhető el."};
+    const {data:u}=await db.from("ugyfelek").select("jelszo_hash").eq("id",customerId).maybeSingle();
+    let ok=!!u?.jelszo_hash&&u.jelszo_hash===regi;
+    if(!ok){const legacy=await legacyWebCall("torzsFelhasznaloBelepes",[r.email,regi]);ok=!!legacy?.siker;}
+    if(!ok)return{siker:false,uzenet:"A jelenlegi jelszó nem megfelelő."};
+    const {error}=await db.from("ugyfelek").update({jelszo_hash:uj,frissitve:new Date().toISOString()}).eq("id",customerId);
+    if(error)return{siker:false,uzenet:"A jelszó mentése nem sikerült."};
+    return{siker:true,uzenet:"A jelszó sikeresen megváltozott."};
   }
   if (name === "torzsPontBevaltas") {
     const n=Math.floor(Number(args[1]??args[0])); const {data:u}=await db.from("ugyfelek").select("pont").eq("id",customerId).single();
