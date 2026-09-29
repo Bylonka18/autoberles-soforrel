@@ -356,11 +356,12 @@ async function publicAction(name: string, p: any, origin: string) {
   if (name === "utasRendelesLemondas") {
     const az=clean(p.id||p.azonosito||p.args?.[0],120);
     if(!az)return{siker:false,uzenet:"Hiányzó rendelési azonosító."};
-    const {data:f}=await db.from("fuvarok").select("id,statusz").eq("azonosito",az).maybeSingle();
+    const {data:f}=await db.from("fuvarok").select("id,statusz,email,sofor_id,azonosito,indulas,cel").eq("azonosito",az).maybeSingle();
     if(!f)return{siker:false,uzenet:"A rendelés nem található."};
     if(!["Új rendelés","Elvállalva"].includes(f.statusz))return{siker:false,uzenet:"Ez a rendelés már nem mondható le."};
     await db.from("fuvar_helyzet").delete().eq("fuvar_id",f.id);
     const {error}=await db.from("fuvarok").delete().eq("id",f.id);
+    if(!error){try{await pushCustomer(f.email,"Rendelés lemondva","A rendelésedet sikeresen lemondtad.",{tipus:"rendeles_lemondva",azonosito:f.azonosito})}catch(e){console.error("customer cancel push",e)}}
     return error?{siker:false,uzenet:"A rendelést nem sikerült lemondani."}:{siker:true,uzenet:"A rendelés sikeresen lemondva."};
   }
   if (name === "utasAppKovetes") {
@@ -524,7 +525,7 @@ async function driverAction(name:string,args:any[],token:string) {
       try{const e=await etaDriver(s,accepted);if(e.mins!==null)await db.from("fuvarok").update({menetido_perc:e.mins,sorban:e.jobs+1,ajanlott_sofor_id:s.id,ajanlott_sofor_nev:s.nev,eta_frissitve:new Date().toISOString()}).eq("id",fid)}catch(e){console.error("ETA_ACCEPT",e)}
       refreshEtaBg();return{siker:true};
     }
-    const {data:finished,error}=await db.from("fuvarok").update({statusz:"Kész"}).eq("id",fid).eq("sofor_id",s.id).eq("statusz","Elvállalva").select("*").maybeSingle();if(error||!finished)return{siker:false,uzenet:"A fuvar lezárása nem sikerült."};await awardRidePoints(finished);try{const {data:admins}=await db.from("app_roles").select("email").eq("szerepkor","admin");for(const a of admins||[]){if(clean(a.email,240).includes("@"))await sendMail(a.email,"Fuvar lezárva",`<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto"><h2>Fuvar lezárva</h2><p><b>${esc(s.nev)}</b> lezárta a fuvart.</p><p><b>Utas:</b> ${esc(finished.nev||"")}<br><b>Indulás:</b> ${esc(finished.indulas||"")}<br><b>Cél:</b> ${esc(finished.cel||"")}<br><b>Azonosító:</b> ${esc(finished.azonosito||"")}</p><p style="font-size:12px;color:#666">Automatikus szolgáltatási értesítés az Autóbérlés sofőrrel rendszerből.</p></div>`)}}catch(e){console.error("admin finished email",e)}return{siker:true};
+    const {data:finished,error}=await db.from("fuvarok").update({statusz:"Kész"}).eq("id",fid).eq("sofor_id",s.id).eq("statusz","Elvállalva").select("*").maybeSingle();if(error||!finished)return{siker:false,uzenet:"A fuvar lezárása nem sikerült."};await awardRidePoints(finished);try{await pushCustomer(finished.email,"Fuvar teljesítve","Köszönjük, hogy minket választottál! A fuvarod befejeződött.",{tipus:"fuvar_kesz",azonosito:finished.azonosito})}catch(e){console.error("customer finished push",e)}try{const {data:admins}=await db.from("app_roles").select("email").eq("szerepkor","admin");for(const a of admins||[]){if(clean(a.email,240).includes("@"))await sendMail(a.email,"Fuvar lezárva",`<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto"><h2>Fuvar lezárva</h2><p><b>${esc(s.nev)}</b> lezárta a fuvart.</p><p><b>Utas:</b> ${esc(finished.nev||"")}<br><b>Indulás:</b> ${esc(finished.indulas||"")}<br><b>Cél:</b> ${esc(finished.cel||"")}<br><b>Azonosító:</b> ${esc(finished.azonosito||"")}</p><p style="font-size:12px;color:#666">Automatikus szolgáltatási értesítés az Autóbérlés sofőrrel rendszerből.</p></div>`)}}catch(e){console.error("admin finished email",e)}return{siker:true};
   }
   if(name==="soforRendelesMegkapva"){
     const fid=await tripByRow(args[0],true);if(!fid)return{siker:false,uzenet:"A fuvar nem található."};
