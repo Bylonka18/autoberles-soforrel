@@ -203,7 +203,28 @@ async function publicAction(name: string, p: any, origin: string) {
   if(name==="torzsJelszoVisszaallitas"){
     const email=clean(p.args?.[0],240).toLowerCase();
     if(!email||!email.includes("@"))return{siker:false,uzenet:"Adj meg érvényes e-mail címet."};
-    return await legacyWebCall("torzsJelszoVisszaallitas",[email])||{siker:false,uzenet:"A jelszó-visszaállítás jelenleg nem érhető el."};
+    const {data:u}=await db.from("ugyfelek").select("id,nev").eq("email",email).maybeSingle();
+    // Ne áruljuk el, hogy egy e-mail cím szerepel-e a rendszerben.
+    if(!u)return{siker:true,uzenet:"Ha az e-mail cím regisztrálva van, elküldtük a jelszó-visszaállító linket."};
+    const raw=randomHex(32),h=await sha256(raw);
+    await db.from("customer_password_reset_tokens").update({used_at:new Date().toISOString()}).eq("ugyfel_id",u.id).is("used_at",null);
+    const {error}=await db.from("customer_password_reset_tokens").insert({ugyfel_id:u.id,token_hash:h,expires_at:new Date(Date.now()+60*60*1000).toISOString()});
+    if(error)return{siker:false,uzenet:"A visszaállító link létrehozása nem sikerült."};
+    const link="https://autoberlessoforrelkiskoros.hu/fiok/?jelszo-token="+encodeURIComponent(raw);
+    try{await sendMail(email,"Jelszó visszaállítása",`<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto"><h2>Autóbérlés sofőrrel - Kiskőrös</h2><p>Szia ${esc(u.nev||"")}!</p><p>Az alábbi gombbal új jelszót állíthatsz be.</p><p><a href="${link}" style="display:inline-block;background:#ffc400;color:#111827;padding:14px 20px;border-radius:10px;text-decoration:none;font-weight:bold">ÚJ JELSZÓ BEÁLLÍTÁSA</a></p><p>A link 1 óráig érvényes és csak egyszer használható.</p></div>`);}
+    catch(e){console.error(e);return{siker:false,uzenet:"Az e-mailt nem sikerült elküldeni. Próbáld újra!"};}
+    return{siker:true,uzenet:"Ha az e-mail cím regisztrálva van, elküldtük a jelszó-visszaállító linket."};
+  }
+  if(name==="torzsJelszoVisszaallitasBefejezes"){
+    const tok=clean(p.args?.[0],200),uj=clean(p.args?.[1],128).toLowerCase();
+    if(!tok||!/^[a-f0-9]{64}$/.test(uj))return{siker:false,uzenet:"Hibás visszaállítási adatok."};
+    const h=await sha256(tok),now=new Date().toISOString();
+    const {data:t}=await db.from("customer_password_reset_tokens").select("id,ugyfel_id,expires_at,used_at").eq("token_hash",h).maybeSingle();
+    if(!t||t.used_at||t.expires_at<=now)return{siker:false,uzenet:"A visszaállító link hibás, lejárt, vagy már felhasználtad."};
+    const {error}=await db.from("ugyfelek").update({jelszo_hash:uj,frissitve:now}).eq("id",t.ugyfel_id);
+    if(error)return{siker:false,uzenet:"Az új jelszó mentése nem sikerült."};
+    await db.from("customer_password_reset_tokens").update({used_at:now}).eq("id",t.id).is("used_at",null);
+    return{siker:true,uzenet:"Az új jelszót sikeresen beállítottad. Most már bejelentkezhetsz."};
   }
   if(name==="adminBelepesHash"||name==="soforBelepesHash"){
     const szerepkor=name==="adminBelepesHash"?"admin":"sofor",felhasznalo=clean(p.felhasznalo,120).toLowerCase(),clientHash=clean(p.jelszoHash,128).toLowerCase();
