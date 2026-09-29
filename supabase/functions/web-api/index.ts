@@ -130,7 +130,7 @@ async function etaDriver(driver:any,target:any){
  const all=jobs||[],targetIndex=all.findIndex((x:any)=>x.id===target?.id);
  const js=targetIndex>=0?all.slice(0,targetIndex):all;let mins=0,last:string|null=null;
  if(js.length){
-   if(live)mins+=await etaGps(live,js[0].indulas);
+   if(live){const first=js[0],pickup=(Number.isFinite(Number(first.indulas_lat))&&Number.isFinite(Number(first.indulas_lng)))?{lat:Number(first.indulas_lat),lon:Number(first.indulas_lng)}:await geocodeAddress(first.indulas);if(pickup)mins+=await routeCoords(live,pickup)}
    mins+=(await routeMinutes(js[0].indulas,js[0].cel))||30;last=js[0].cel;
    for(let i=1;i<js.length;i++){mins+=(await routeMinutes(last!,js[i].indulas))||10;mins+=(await routeMinutes(js[i].indulas,js[i].cel))||30;last=js[i].cel}
    mins+=(await routeMinutes(last!,target.indulas))||10;
