@@ -147,7 +147,11 @@ async function etaGps(live:any,addr:string){
 async function tripPoint(f:any,which:"pickup"|"dropoff"){const lat=Number(which==="pickup"?f?.indulas_lat:f?.cel_lat),lon=Number(which==="pickup"?f?.indulas_lng:f?.cel_lng);if(Number.isFinite(lat)&&Number.isFinite(lon))return{lat,lon};return await geocodeAddress(which==="pickup"?f?.indulas:f?.cel)}
 async function etaDriver(driver:any,target:any){
  const {data:jobs}=await db.from("fuvarok").select("id,indulas,cel,indulas_lat,indulas_lng,cel_lat,cel_lng,letrehozva").eq("sofor_id",driver.id).eq("statusz","Elvállalva").order("letrehozva");
- const {data:live}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",driver.id).gte("frissitve",new Date(Date.now()-180000).toISOString()).maybeSingle();
+ const {data:freshLive}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",driver.id).gte("frissitve",new Date(Date.now()-180000).toISOString()).maybeSingle();
+ let live:any=freshLive;
+ // Weben szolgálatba lépett sofőr is maradjon ajánlható. Ha nincs friss appos GPS,
+ // az utolsó ismert helyzetét használjuk ideiglenes ETA-hoz, amíg új GPS nem érkezik.
+ if(!live){const {data:lastLive}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",driver.id).order("frissitve",{ascending:false}).limit(1).maybeSingle();live=lastLive}
  if(!live)return{mins:null,jobs:0};
  const assigned=jobs||[],targetIndex=assigned.findIndex((x:any)=>x.id===target?.id);
  let js=targetIndex>=0?assigned.slice(0,targetIndex):[...assigned];
