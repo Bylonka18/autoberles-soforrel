@@ -515,7 +515,7 @@ async function driverAction(name:string,args:any[],token:string) {
     const visszaigazolt=new Set<string>(),megerkezett=new Set<string>();const vaz=visible.map((x:any)=>x.azonosito).filter(Boolean);if(vaz.length){const{data:ve}=await db.from("fuvar_esemenyek").select("azonosito,tipus").in("azonosito",vaz).in("tipus",["rendeles_megkapva","sofor_megerkezett"]);for(const e of ve||[]){if(e.tipus==="rendeles_megkapva")visszaigazolt.add(e.azonosito);if(e.tipus==="sofor_megerkezett")megerkezett.add(e.azonosito)}}
     refreshEtaBg();
     const lista:any[]=visible.map((x:any)=>{
-      const n:any=normalizeTrip(x);n.rendelesVisszaigazolva=visszaigazolt.has(x.azonosito);n.megerkezett=megerkezett.has(x.azonosito);
+      const n:any=normalizeTrip(x);n.sajat=x.sofor_id===s.id;n.rendelesVisszaigazolva=visszaigazolt.has(x.azonosito);n.megerkezett=megerkezett.has(x.azonosito);
       n.varakozasPerc=x.menetido_perc??null;n.sorban=x.sorban??null;
       if(x.statusz==="Új rendelés"&&x.ajanlott_sofor_nev)n.ajanlas={nev:x.ajanlott_sofor_nev,szabad:Number(x.sorban)>1?"Fuvarban":"Most szabad",indok:Number.isFinite(Number(x.menetido_perc))?"Várható felvétel: kb. "+Number(x.menetido_perc)+" perc":""};
       return n;
