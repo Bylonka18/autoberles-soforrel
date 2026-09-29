@@ -436,11 +436,21 @@ async function customerAction(name:string,args:any[],token:string) {
     return{siker:true,uzenet:"A jelszó sikeresen megváltozott."};
   }
   if (name === "torzsPontBevaltas") {
-    const n=Math.floor(Number(args[1]??args[0])); const {data:u}=await db.from("ugyfelek").select("pont").eq("id",customerId).single();
-    if (!n||n<1||Number(u?.pont||0)<n) return {siker:false,uzenet:"Nincs elég pontod."};
-    await db.from("ugyfelek").update({pont:Number(u.pont)-n,frissitve:new Date().toISOString()}).eq("id",customerId);
-    await db.from("pont_naplo").insert({ugyfel_id:customerId,pont:-n,tipus:"Beváltás",megjegyzes:"Pontbeváltás"});
-    return {siker:true,uzenet:`${n} pont beváltva.`};
+    const n=Math.floor(Number(args[1]??args[0]));
+    const engedelyezett=[500,1000,2000,5000];
+    if(!engedelyezett.includes(n))return{siker:false,uzenet:"Csak 500, 1000, 2000 vagy 5000 pont váltható be."};
+    const {data:u}=await db.from("ugyfelek").select("pont").eq("id",customerId).single();
+    const jelenlegi=Number(u?.pont||0);
+    if(jelenlegi<n)return{siker:false,uzenet:"Nincs elég pontod ehhez a beváltáshoz."};
+    const ujPont=jelenlegi-n;
+    const {data:frissitett,error}=await db.from("ugyfelek").update({pont:ujPont,frissitve:new Date().toISOString()}).eq("id",customerId).eq("pont",jelenlegi).select("pont").maybeSingle();
+    if(error||!frissitett)return{siker:false,uzenet:"A pontegyenleg közben megváltozott. Próbáld újra."};
+    const {error:naploHiba}=await db.from("pont_naplo").insert({ugyfel_id:customerId,pont:-n,tipus:"Beváltás",megjegyzes:`${n} pont beváltása`});
+    if(naploHiba){
+      await db.from("ugyfelek").update({pont:jelenlegi,frissitve:new Date().toISOString()}).eq("id",customerId).eq("pont",ujPont);
+      return{siker:false,uzenet:"A beváltást nem sikerült rögzíteni. A pontokat nem vontuk le."};
+    }
+    return{siker:true,pont:ujPont,bevaltottPont:n,uzenet:`${n} pont sikeresen beváltva. Új egyenleg: ${ujPont} pont.`};
   }
   if (name === "torzsKijelentkezes") return {siker:true};
   if (name === "confirmBooking") {
