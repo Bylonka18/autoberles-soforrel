@@ -144,26 +144,28 @@ async function etaGps(live:any,addr:string){
  const cityFloor=km>0.15?Math.max(2,Math.ceil(km/30*60)):1;
  return road>0?Math.max(road,cityFloor):cityFloor
 }
+async function tripPoint(f:any,which:"pickup"|"dropoff"){const lat=Number(which==="pickup"?f?.indulas_lat:f?.cel_lat),lon=Number(which==="pickup"?f?.indulas_lng:f?.cel_lng);if(Number.isFinite(lat)&&Number.isFinite(lon))return{lat,lon};return await geocodeAddress(which==="pickup"?f?.indulas:f?.cel)}
 async function etaDriver(driver:any,target:any){
  const {data:jobs}=await db.from("fuvarok").select("id,indulas,cel,indulas_lat,indulas_lng,cel_lat,cel_lng,letrehozva").eq("sofor_id",driver.id).eq("statusz","Elvállalva").order("letrehozva");
  const {data:live}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",driver.id).gte("frissitve",new Date(Date.now()-180000).toISOString()).maybeSingle();
+ if(!live)return{mins:null,jobs:0};
  const assigned=jobs||[],targetIndex=assigned.findIndex((x:any)=>x.id===target?.id);
  let js=targetIndex>=0?assigned.slice(0,targetIndex):[...assigned];
- // A még el nem vállalt, korábban érkezett rendelések is a sofőr várólistájának részei.
- // Így a 2. várakozó rendelés nem kaphat 1. helyet és közvetlen GPS ETA-t.
  if(targetIndex<0&&target?.letrehozva){
    const {data:waiting}=await db.from("fuvarok").select("id,indulas,cel,indulas_lat,indulas_lng,cel_lat,cel_lng,letrehozva").eq("statusz","Új rendelés").lt("letrehozva",target.letrehozva).order("letrehozva");
    const assignedIds=new Set(assigned.map((x:any)=>x.id));
    js=[...assigned,...(waiting||[]).filter((x:any)=>!assignedIds.has(x.id))].sort((a:any,b:any)=>String(a.letrehozva).localeCompare(String(b.letrehozva)));
  }
- let mins=0,last:string|null=null;
- if(js.length){
-   if(live){const first=js[0],pickup=(Number.isFinite(Number(first.indulas_lat))&&Number.isFinite(Number(first.indulas_lng)))?{lat:Number(first.indulas_lat),lon:Number(first.indulas_lng)}:await geocodeAddress(first.indulas);if(pickup)mins+=await routeCoords(live,pickup)}
-   mins+=(await routeMinutes(js[0].indulas,js[0].cel))||30;last=js[0].cel;
-   for(let i=1;i<js.length;i++){mins+=(await routeMinutes(last!,js[i].indulas))||10;mins+=(await routeMinutes(js[i].indulas,js[i].cel))||30;last=js[i].cel}
-   mins+=(await routeMinutes(last!,target.indulas))||10;
- }else if(live){const pickup=(Number.isFinite(Number(target?.indulas_lat))&&Number.isFinite(Number(target?.indulas_lng)))?{lat:Number(target.indulas_lat),lon:Number(target.indulas_lng)}:await geocodeAddress(target.indulas);if(pickup)mins+=await routeCoords(live,pickup);else return{mins:null,jobs:0};}
- else return{mins:null,jobs:0};
+ let mins=0,current:any={lat:Number(live.lat),lon:Number(live.lng)};
+ for(const f of js){
+   const pickup=await tripPoint(f,"pickup"),dropoff=await tripPoint(f,"dropoff");
+   if(!pickup||!dropoff)return{mins:null,jobs:js.length};
+   mins+=await routeCoords(current,pickup);
+   mins+=await routeCoords(pickup,dropoff);
+   current=dropoff;
+ }
+ const targetPickup=await tripPoint(target,"pickup");if(!targetPickup)return{mins:null,jobs:js.length};
+ mins+=await routeCoords(current,targetPickup);
  return{mins:Math.max(1,Math.round(mins)),jobs:js.length}
 }
 let etaRefreshRunning=false;
