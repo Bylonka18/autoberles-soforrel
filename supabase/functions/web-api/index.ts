@@ -307,9 +307,13 @@ async function publicAction(name: string, p: any, origin: string) {
   }
   if (name === "tripLocation") {
     const az=clean(p.azonosito||p.id,120);
-    const {data:f}=await db.from("fuvarok").select("id,sofor_nev").eq("azonosito",az).eq("statusz","Elvállalva").maybeSingle();
-    if(!f)return{siker:false};
-    const {data:h}=await db.from("fuvar_helyzet").select("lat,lng,frissitve").eq("fuvar_id",f.id).gte("frissitve",new Date(Date.now()-180000).toISOString()).maybeSingle();
+    const {data:f}=await db.from("fuvarok").select("id,sofor_id,sofor_nev").eq("azonosito",az).eq("statusz","Elvállalva").maybeSingle();
+    if(!f||!f.sofor_id)return{siker:false};
+    const fresh=new Date(Date.now()-180000).toISOString();
+    // Ugyanazt a sofőr-helyzetet adjuk vissza, amelyet az ETA számítás is használ.
+    const {data:s}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",f.sofor_id).gte("frissitve",fresh).maybeSingle();
+    if(s)return{siker:true,...s,sofor_nev:f.sofor_nev};
+    const {data:h}=await db.from("fuvar_helyzet").select("lat,lng,frissitve").eq("fuvar_id",f.id).gte("frissitve",fresh).maybeSingle();
     return h?{siker:true,...h,sofor_nev:f.sofor_nev}:{siker:false};
   }
   if (name === "ertekelesKuldes") {
