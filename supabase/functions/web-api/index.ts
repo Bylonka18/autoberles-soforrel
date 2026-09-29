@@ -145,31 +145,20 @@ async function etaGps(live:any,addr:string){
  return road>0?Math.max(road,cityFloor):cityFloor
 }
 async function tripPoint(f:any,which:"pickup"|"dropoff"){const lat=Number(which==="pickup"?f?.indulas_lat:f?.cel_lat),lon=Number(which==="pickup"?f?.indulas_lng:f?.cel_lng);if(Number.isFinite(lat)&&Number.isFinite(lon))return{lat,lon};return await geocodeAddress(which==="pickup"?f?.indulas:f?.cel)}
-async function etaDriver(driver:any,target:any){
+async function etaDriver(driver:any,target:any,planned:any[]=[]){
  const {data:jobs}=await db.from("fuvarok").select("id,indulas,cel,indulas_lat,indulas_lng,cel_lat,cel_lng,letrehozva").eq("sofor_id",driver.id).eq("statusz","Elvállalva").order("letrehozva");
  const {data:freshLive}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",driver.id).gte("frissitve",new Date(Date.now()-180000).toISOString()).maybeSingle();
  let live:any=freshLive;
- // Weben szolgálatba lépett sofőr is maradjon ajánlható. Ha nincs friss appos GPS,
- // az utolsó ismert helyzetét használjuk ideiglenes ETA-hoz, amíg új GPS nem érkezik.
  if(!live){const {data:lastLive}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",driver.id).order("frissitve",{ascending:false}).limit(1).maybeSingle();live=lastLive}
  if(!live)return{mins:null,jobs:0};
  const assigned=jobs||[],targetIndex=assigned.findIndex((x:any)=>x.id===target?.id);
  let js=targetIndex>=0?assigned.slice(0,targetIndex):[...assigned];
- if(targetIndex<0&&target?.letrehozva){
-   const {data:waiting}=await db.from("fuvarok").select("id,indulas,cel,indulas_lat,indulas_lng,cel_lat,cel_lng,letrehozva").eq("statusz","Új rendelés").lt("letrehozva",target.letrehozva).order("letrehozva");
-   const assignedIds=new Set(assigned.map((x:any)=>x.id));
-   js=[...assigned,...(waiting||[]).filter((x:any)=>!assignedIds.has(x.id))].sort((a:any,b:any)=>String(a.letrehozva).localeCompare(String(b.letrehozva)));
- }
+ // Az aktuális új rendelések kiosztását driverenként külön tervezzük.
+ // Csak azok kerülnek a sofőr elé, amelyeket ebben a körben ténylegesen neki ajánlottunk.
+ if(targetIndex<0&&planned.length)js=[...js,...planned].sort((a:any,b:any)=>String(a.letrehozva).localeCompare(String(b.letrehozva)));
  let mins=0,current:any={lat:Number(live.lat),lon:Number(live.lng)};
- for(const f of js){
-   const pickup=await tripPoint(f,"pickup"),dropoff=await tripPoint(f,"dropoff");
-   if(!pickup||!dropoff)return{mins:null,jobs:js.length};
-   mins+=await routeCoords(current,pickup);
-   mins+=await routeCoords(pickup,dropoff);
-   current=dropoff;
- }
- const targetPickup=await tripPoint(target,"pickup");if(!targetPickup)return{mins:null,jobs:js.length};
- mins+=await routeCoords(current,targetPickup);
+ for(const f of js){const pickup=await tripPoint(f,"pickup"),dropoff=await tripPoint(f,"dropoff");if(!pickup||!dropoff)return{mins:null,jobs:js.length};mins+=await routeCoords(current,pickup);mins+=await routeCoords(pickup,dropoff);current=dropoff}
+ const targetPickup=await tripPoint(target,"pickup");if(!targetPickup)return{mins:null,jobs:js.length};mins+=await routeCoords(current,targetPickup);
  return{mins:Math.max(1,Math.round(mins)),jobs:js.length}
 }
 let etaRefreshRunning=false;
@@ -182,13 +171,14 @@ async function refreshAllEtas(){
    db.from("fuvarok").select("*").eq("datum",today).is("ido",null).in("statusz",["Új rendelés","Elvállalva"]).order("letrehozva")
   ]);
   const ds=drivers||[],rows=trips||[],stamp=new Date().toISOString(),updates:any[]=[];
+  const planned=new Map<string,any[]>();for(const d of ds)planned.set(d.id,[]);
   for(const f of rows){
    if(f.statusz==="Elvállalva"&&f.sofor_id){
     const d=ds.find((x:any)=>x.id===f.sofor_id);if(!d)continue;
-    const e=await etaDriver(d,f);if(e.mins!==null)updates.push({id:f.id,menetido_perc:e.mins,sorban:e.jobs+1,ajanlott_sofor_id:d.id,ajanlott_sofor_nev:d.nev});
+    const e=await etaDriver(d,f,[]);if(e.mins!==null)updates.push({id:f.id,menetido_perc:e.mins,sorban:e.jobs+1,ajanlott_sofor_id:d.id,ajanlott_sofor_nev:d.nev});
    }else if(f.statusz==="Új rendelés"){
-    const vals=(await Promise.all(ds.map(async(d:any)=>({d,e:await etaDriver(d,f)})))).filter((x:any)=>x.e.mins!==null).sort((a:any,b:any)=>a.e.mins-b.e.mins);
-    if(vals.length){const b=vals[0];updates.push({id:f.id,menetido_perc:b.e.mins,sorban:b.e.jobs+1,ajanlott_sofor_id:b.d.id,ajanlott_sofor_nev:b.d.nev})}
+    const vals=(await Promise.all(ds.map(async(d:any)=>({d,e:await etaDriver(d,f,planned.get(d.id)||[])})))).filter((x:any)=>x.e.mins!==null).sort((a:any,b:any)=>a.e.mins-b.e.mins);
+    if(vals.length){const b=vals[0];updates.push({id:f.id,menetido_perc:b.e.mins,sorban:b.e.jobs+1,ajanlott_sofor_id:b.d.id,ajanlott_sofor_nev:b.d.nev});planned.get(b.d.id)!.push(f)}
    }
   }
   await Promise.all(updates.map(u=>db.from("fuvarok").update({menetido_perc:u.menetido_perc,sorban:u.sorban,ajanlott_sofor_id:u.ajanlott_sofor_id,ajanlott_sofor_nev:u.ajanlott_sofor_nev,eta_frissitve:stamp}).eq("id",u.id)));
