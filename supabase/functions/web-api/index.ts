@@ -498,7 +498,7 @@ async function driverAction(name:string,args:any[],token:string) {
   if(name==="soforSajatDolgozikAllapot") return {siker:true,dolgozik:!!s.dolgozik};
   if(name==="soforSajatDolgozikValtas"){await db.from("soforok").update({dolgozik:!s.dolgozik,frissitve:new Date().toISOString()}).eq("id",s.id);refreshEtaBg();return{siker:true,dolgozik:!s.dolgozik};}
   if(name==="ujFuvarokLekerdezese"||name==="soforKezdoAdatok"){
-    const {data}=await db.from("fuvarok").select("*").in("statusz",["Új rendelés","Elvállalva"]).gte("datum",new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Budapest"}).format(new Date())).order("datum").order("ido",{nullsFirst:true});
+    const {data}=await db.from("fuvarok").select("*").in("statusz",["Új rendelés","Elvállalva"]).gte("datum",new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Budapest"}).format(new Date())).order("datum").order("ido",{nullsFirst:true}).order("letrehozva",{ascending:true});
     const aktiv=data||[];
     const visible=aktiv;
     const {data:working}=await db.from("soforok").select("id,nev").eq("aktiv",true).eq("dolgozik",true).order("nev");
