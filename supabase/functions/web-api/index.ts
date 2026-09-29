@@ -146,8 +146,16 @@ async function etaGps(live:any,addr:string){
 async function etaDriver(driver:any,target:any){
  const {data:jobs}=await db.from("fuvarok").select("id,indulas,cel,indulas_lat,indulas_lng,cel_lat,cel_lng,letrehozva").eq("sofor_id",driver.id).eq("statusz","Elvállalva").order("letrehozva");
  const {data:live}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",driver.id).gte("frissitve",new Date(Date.now()-180000).toISOString()).maybeSingle();
- const all=jobs||[],targetIndex=all.findIndex((x:any)=>x.id===target?.id);
- const js=targetIndex>=0?all.slice(0,targetIndex):all;let mins=0,last:string|null=null;
+ const assigned=jobs||[],targetIndex=assigned.findIndex((x:any)=>x.id===target?.id);
+ let js=targetIndex>=0?assigned.slice(0,targetIndex):[...assigned];
+ // A még el nem vállalt, korábban érkezett rendelések is a sofőr várólistájának részei.
+ // Így a 2. várakozó rendelés nem kaphat 1. helyet és közvetlen GPS ETA-t.
+ if(targetIndex<0&&target?.letrehozva){
+   const {data:waiting}=await db.from("fuvarok").select("id,indulas,cel,indulas_lat,indulas_lng,cel_lat,cel_lng,letrehozva").eq("statusz","Új rendelés").lt("letrehozva",target.letrehozva).order("letrehozva");
+   const assignedIds=new Set(assigned.map((x:any)=>x.id));
+   js=[...assigned,...(waiting||[]).filter((x:any)=>!assignedIds.has(x.id))].sort((a:any,b:any)=>String(a.letrehozva).localeCompare(String(b.letrehozva)));
+ }
+ let mins=0,last:string|null=null;
  if(js.length){
    if(live){const first=js[0],pickup=(Number.isFinite(Number(first.indulas_lat))&&Number.isFinite(Number(first.indulas_lng)))?{lat:Number(first.indulas_lat),lon:Number(first.indulas_lng)}:await geocodeAddress(first.indulas);if(pickup)mins+=await routeCoords(live,pickup)}
    mins+=(await routeMinutes(js[0].indulas,js[0].cel))||30;last=js[0].cel;
