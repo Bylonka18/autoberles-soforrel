@@ -501,6 +501,12 @@ async function driverAction(name:string,args:any[],token:string) {
   const r=await role(token,"sofor"); if(!r) return {siker:false,uzenet:"A munkamenet lejárt."};
   const {data:s}=await db.from("soforok").select("*").eq("id",r.sofor_id).single();
   if(name==="pushTokenMentese")return await savePushToken(r,args,"sofor");
+  if(name==="soforAdminToken"){
+    const felh=clean(s.felhasznalo,120).toLowerCase(),nev=clean(s.nev,160).toLowerCase();
+    if(felh!=="alex"&&nev!=="alex")return{siker:false,uzenet:"Nincs admin jogosultság."};
+    const adminToken=await issueSession("admin","alex-app",null);
+    return{siker:true,token:adminToken};
+  }
   if(name==="soforKovetkezoSzabad"){
     const {data:drivers}=await db.from("soforok").select("id,nev").eq("aktiv",true).eq("dolgozik",true);
     if(!drivers?.length)return{siker:true,elerheto:false,uzenet:"Nincs szolgálatban sofőr."};
@@ -620,7 +626,7 @@ Deno.serve(async req => {
     const token=clean(p.sessionToken||p.token||req.headers.get("Authorization")?.replace(/^Bearer\s+/i,""),5000);
     let result:any;
     const adminNames=new Set(["onlineRendelesValtas","adminSoforListaLekerdezese","adminFuvarokLekerdezese","adminSoforHelyzetek","adminErtekelesLista","adminTiltolistaLekerdezese","adminFelhasznaloLista","adminSoforDolgozikValtas","adminSoforEmailMentese","adminSoforJarmuMentese","adminSoforLetrehozasa","adminSoforTorlese","adminFuvarMentese","adminFuvarTorlese","adminErtekelesAllapot","adminErtekelesTorles","adminUgyfelTiltasa","adminTiltoFeloldasa","adminFelhasznaloPont","adminFelhasznaloSzerkesztes","adminFelhasznaloTorles","adminNapiOsszesito","adminFuvarArchivum","adminFuvarVisszahelyezese"]);
-    const driverNames=new Set(["soforSajatDolgozikAllapot","soforSajatDolgozikValtas","ujFuvarokLekerdezese","soforKezdoAdatok","fuvarElvallalasa","fuvarKesz","soforAppHelyzetFrissites","soforUgyfelJavaslatok","soforFuvarHozzaadas","soforRendelesMegkapva","soforMegerkezett","soforKijelentkezes","pushTokenMentese"]);
+    const driverNames=new Set(["soforSajatDolgozikAllapot","soforSajatDolgozikValtas","ujFuvarokLekerdezese","soforKezdoAdatok","fuvarElvallalasa","fuvarKesz","soforAppHelyzetFrissites","soforUgyfelJavaslatok","soforFuvarHozzaadas","soforRendelesMegkapva","soforMegerkezett","soforKijelentkezes","soforAdminToken","pushTokenMentese"]);
     const customerNames=new Set(["torzsProfilLekerdezese","torzsSajatFuvarok","torzsPontBevaltas","torzsProfilModositas","torzsJelszoModositas","torzsKijelentkezes","confirmBooking","pushTokenMentese"]);
     if(adminNames.has(name)||(name==="onlineRendelesAllapot"&&token))result=await adminAction(name,args,token);
     else if(name==="pushTokenMentese"){
