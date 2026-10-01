@@ -20,6 +20,23 @@ function out(data: unknown, callback = "") {
 }
 function clean(v: unknown, max = 500) { return String(v ?? "").trim().slice(0, max); }
 function id() { return crypto.randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase(); }
+function nyitvatartasban(datum:string, ido:string){
+  const m=String(datum||"").match(/^(\d{4})-(\d{2})-(\d{2})$/),t=String(ido||"").match(/^(\d{1,2}):(\d{2})/);
+  if(!m||!t)return false;
+  const y=Number(m[1]),mo=Number(m[2]),d=Number(m[3]),perc=Number(t[1])*60+Number(t[2]);
+  const nap=new Date(Date.UTC(y,mo-1,d,12)).getUTCDay(); // 0 vasárnap, 1 hétfő...
+  if(nap===0){if(perc<4*60)return true;return perc>=11*60&&perc<23*60;} // vasárnap 00-04 a szombati nyitvatartás folytatása
+  if(nap===1)return perc>=8*60&&perc<23*60;
+  if(nap>=2&&nap<=4)return perc>=8*60&&perc<23*60;
+  if(nap===5)return perc>=8*60; // péntek 08:00-tól éjfélig
+  if(nap===6)return perc<4*60||perc>=8*60; // szombat hajnal 04:00-ig, majd 08:00-tól
+  return false;
+}
+function budapestMost(){
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Budapest",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());
+  const v=(type:string)=>parts.find(x=>x.type===type)?.value||"";
+  return{datum:`${v("year")}-${v("month")}-${v("day")}`,ido:`${v("hour")}:${v("minute")}`};
+}
 async function sha256(v:string){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
 function randomHex(bytes=24){const a=crypto.getRandomValues(new Uint8Array(bytes));return [...a].map(x=>x.toString(16).padStart(2,"0")).join("")}
 async function passwordVerifier(clientHash:string,salt:string){return await sha256(`${salt}:${clientHash}`)}
@@ -317,6 +334,13 @@ async function publicAction(name: string, p: any, origin: string) {
     const {data:blocked}=await db.from("tiltolista").select("id").or(`and(tipus.eq.email,ertek.eq.${email}),and(tipus.eq.telefon,ertek.eq.${telefon})`).limit(1);
     if(blocked?.length)return{siker:false,uzenet:"Erről az elérhetőségről nem adható le rendelés."};
     const azonosito=id(),planned=a.rendelesTipus==="idopont",datum=planned&&a.datum?a.datum:new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Budapest"}).format(new Date());
+    if(planned){
+      const foglalasiIdo=clean(a.ido,8);
+      if(!a.datum||!foglalasiIdo||!nyitvatartasban(String(a.datum),foglalasiIdo))return{siker:false,uzenet:"Erre az időpontra zárva vagyunk. Nyitvatartás: H–Cs 08:00–23:00, P–Szo 08:00–04:00, V 11:00–23:00."};
+    }else{
+      const most=budapestMost();
+      if(!nyitvatartasban(most.datum,most.ido))return{siker:false,uzenet:"Jelenleg zárva vagyunk. Nyitvatartás: H–Cs 08:00–23:00, P–Szo 08:00–04:00, V 11:00–23:00."};
+    }
     if(!planned){
       const {data:working}=await db.from("soforok").select("id").eq("aktiv",true).eq("dolgozik",true);
       if(!working?.length)return{siker:false,uzenet:"Jelenleg nincs szolgálatban elérhető sofőr."};
