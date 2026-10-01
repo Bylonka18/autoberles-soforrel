@@ -148,7 +148,7 @@ async function geocodeAddress(q:string){
  const m=raw.match(/^([^,]+),\s*(.+?),\s*(\d{4})(?:\s*,?\s*Magyarország)?$/i);
  const canonical=m?`${m[3]} ${m[1]}, ${m[2]}`:raw;
  const street=m?m[2].replace(/\bu\.\s*/gi,"utca "):"";
- const structured=m?`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=hu&street=${encodeURIComponent(street)}&city=${encodeURIComponent(m[1])}&postalcode=${encodeURIComponent(m[3])}`:"";
+ const structured=m?`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=hu&street=${encodeURIComponent(street)}&city=${encodeURIComponent(m[1])}&postalcode=${encodeURIComponent(m[3])}`:simple?`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=hu&street=${encodeURIComponent(simple[2].replace(/\\bu\\.\\s*/gi,"utca "))}&city=${encodeURIComponent(simple[1])}`:"";
  if(structured)try{const r=await fetch(structured,{headers:{"User-Agent":"AutoberlesSoforrel/1.0"}});const a=r.ok?await r.json():[];if(a?.[0]){const p={lat:Number(a[0].lat),lon:Number(a[0].lon),at:Date.now()};etaGeoCache.set(cacheKey,p);return p}}catch{}
  const variants=[canonical,canonical.replace(/\bu\.\s*/gi,"utca "),raw,raw.replace(/,?\s*\d{4}\s+Magyarország\s*$/i,""),raw.replace(/\bu\.\s*/gi,"utca ")];
  const parts=raw.split(",").map((x:string)=>x.trim()).filter(Boolean);
@@ -369,7 +369,7 @@ async function publicAction(name: string, p: any, origin: string) {
       }
       if(!vanSzabad)return{siker:false,uzenet:"Erre az időpontra a jelenlegi fuvarok menetideje alapján nincs szabad sofőr. Válassz későbbi időpontot."};
     }
-    const {data:f,error}=await db.from("fuvarok").insert({azonosito,nev:clean(a.nev,160),telefon,email,indulas:clean(a.indulas),cel:clean(a.cel),indulas_lat:Number.isFinite(Number(a.indulasLat))?Number(a.indulasLat):null,indulas_lng:Number.isFinite(Number(a.indulasLng))?Number(a.indulasLng):null,cel_lat:Number.isFinite(Number(a.celLat))?Number(a.celLat):null,cel_lng:Number.isFinite(Number(a.celLng))?Number(a.celLng):null,datum,ido:planned?clean(a.ido,8)||null:null,utasok:Math.max(1,Math.min(9,Number(a.utasok)||1)),megjegyzes:clean(a.megjegyzes,2000),statusz:"Megerősítésre vár"}).select("id,azonosito").single();
+    const {data:f,error}=await db.from("fuvarok").insert({azonosito,nev:clean(a.nev,160),telefon,email,indulas:clean(a.indulas),cel:clean(a.cel),indulas_lat:validTripCoords(a.indulasLat,a.indulasLng)?Number(a.indulasLat):null,indulas_lng:validTripCoords(a.indulasLat,a.indulasLng)?Number(a.indulasLng):null,cel_lat:validTripCoords(a.celLat,a.celLng)?Number(a.celLat):null,cel_lng:validTripCoords(a.celLat,a.celLng)?Number(a.celLng):null,datum,ido:planned?clean(a.ido,8)||null:null,utasok:Math.max(1,Math.min(9,Number(a.utasok)||1)),megjegyzes:clean(a.megjegyzes,2000),statusz:"Megerősítésre vár"}).select("id,azonosito").single();
     if(error||!f)return{siker:false,uzenet:"A rendelést nem sikerült rögzíteni."};
     const raw=randomHex(32),hash=await sha256(raw);
     const {error:te}=await db.from("booking_confirmation_tokens").insert({fuvar_id:f.id,token_hash:hash,expires_at:new Date(Date.now()+24*3600*1000).toISOString()});
