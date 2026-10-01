@@ -189,7 +189,7 @@ async function etaDriver(driver:any,target:any,planned:any[]=[]){
  // Csak azok kerülnek a sofőr elé, amelyeket ebben a körben ténylegesen neki ajánlottunk.
  if(targetIndex<0&&planned.length)js=[...js,...planned].sort((a:any,b:any)=>String(a.letrehozva).localeCompare(String(b.letrehozva)));
  let mins=0,current:any={lat:Number(live.lat),lon:Number(live.lng)};
- for(const f of js){const pickup=await tripPoint(f,"pickup"),dropoff=await tripPoint(f,"dropoff");if(!pickup||!dropoff)return{mins:null,jobs:js.length};mins+=await routeCoords(current,pickup);mins+=await routeCoords(pickup,dropoff);current=dropoff}
+ for(const f of js){const pickup=await tripPoint(f,"pickup"),dropoff=await tripPoint(f,"dropoff");if(!pickup||!dropoff)return{mins:null,jobs:js.length};const toPickup=await routeCoords(current,pickup);const toDropoff=await routeCoords(pickup,dropoff);console.log("ETA_SEGMENT",{target:String(target?.id||""),trip:String(f?.id||""),from:current,pickup,dropoff,toPickup,toDropoff});mins+=toPickup;mins+=toDropoff;current=dropoff}
  const targetPickup=await tripPoint(target,"pickup");if(!targetPickup)return{mins:null,jobs:js.length};mins+=await routeCoords(current,targetPickup);
  return{mins:Math.max(1,Math.round(mins)),jobs:js.length}
 }
