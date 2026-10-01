@@ -173,7 +173,8 @@ async function etaGps(live:any,addr:string){
  const cityFloor=km>0.15?Math.max(2,Math.ceil(km/30*60)):1;
  return road>0?Math.max(road,cityFloor):cityFloor
 }
-function validTripCoords(lat:any,lon:any){const a=Number(lat),o=Number(lon);return Number.isFinite(a)&&Number.isFinite(o)&&Math.abs(a)<=90&&Math.abs(o)<=180&&!(Math.abs(a)<0.0001&&Math.abs(o)<0.0001)}\nasync function tripPoint(f:any,which:"pickup"|"dropoff"){const lat=which==="pickup"?f?.indulas_lat:f?.cel_lat,lon=which==="pickup"?f?.indulas_lng:f?.cel_lng;if(validTripCoords(lat,lon))return{lat:Number(lat),lon:Number(lon)};return await geocodeAddress(which==="pickup"?f?.indulas:f?.cel)}
+function validTripCoords(lat:any,lon:any){const a=Number(lat),o=Number(lon);return Number.isFinite(a)&&Number.isFinite(o)&&Math.abs(a)<=90&&Math.abs(o)<=180&&!(Math.abs(a)<0.0001&&Math.abs(o)<0.0001)}
+async function tripPoint(f:any,which:"pickup"|"dropoff"){const lat=which==="pickup"?f?.indulas_lat:f?.cel_lat,lon=which==="pickup"?f?.indulas_lng:f?.cel_lng;if(validTripCoords(lat,lon))return{lat:Number(lat),lon:Number(lon)};return await geocodeAddress(which==="pickup"?f?.indulas:f?.cel)}
 async function etaDriver(driver:any,target:any,planned:any[]=[]){
  const {data:jobs}=await db.from("fuvarok").select("id,indulas,cel,indulas_lat,indulas_lng,cel_lat,cel_lng,letrehozva").eq("sofor_id",driver.id).eq("statusz","Elvállalva").order("letrehozva");
  const {data:freshLive}=await db.from("sofor_helyzet").select("lat,lng,frissitve").eq("sofor_id",driver.id).gte("frissitve",new Date(Date.now()-180000).toISOString()).maybeSingle();
