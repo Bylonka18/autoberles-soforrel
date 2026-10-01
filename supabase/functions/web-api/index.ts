@@ -594,14 +594,8 @@ async function driverAction(name:string,args:any[],token:string) {
     let f:any=null;if(clean(az,120)&&clean(az,120)!=="__szabad__"){const q=await db.from("fuvarok").select("id").eq("azonosito",clean(az,120)).eq("sofor_id",s.id).eq("statusz","Elvállalva").maybeSingle();f=q.data}
     const stamp=new Date().toISOString();await db.from("sofor_helyzet").upsert({sofor_id:s.id,fuvar_id:f?.id||null,lat:nlat,lng:nlng,frissitve:stamp},{onConflict:"sofor_id"});
     if(f)await db.from("fuvar_helyzet").upsert({fuvar_id:f.id,lat:nlat,lng:nlng,frissitve:stamp});
-    // GPS frissítésnél várjuk meg az ETA újraszámítását, így a követési oldal nem a korábbi helyzetből számolt értéket mutatja.
-    if(f){
-      const {data:trip}=await db.from("fuvarok").select("id,indulas,indulas_lat,indulas_lng").eq("id",f.id).maybeSingle();
-      if(trip){
-        const pickup=validTripCoords(trip.indulas_lat,trip.indulas_lng)?{lat:Number(trip.indulas_lat),lon:Number(trip.indulas_lng)}:await geocodeAddress(trip.indulas);
-        if(pickup){const mins=await routeCoords({lat:nlat,lng:nlng},pickup);if(mins>0)await db.from("fuvarok").update({menetido_perc:mins,eta_frissitve:stamp}).eq("id",trip.id)}
-      }
-    }
+    // A GPS mentése után azonnal válaszolunk az appnak. Az ETA számítása háttérben fut,
+    // így a cím geokódolása vagy az útvonal-szolgáltató nem tarthatja fel a GPS státuszt.
     refreshEtaBg();return{siker:true};
   }
   if(name==="soforUgyfelJavaslatok") {const q=clean(args[0],100);const byKey=new Map<string,any>();const{data:reg}=await db.from("ugyfelek").select("id,nev,telefon,email").or(`nev.ilike.%${q}%,telefon.ilike.%${q}%`).limit(12);for(const u of reg||[]){const k=String(u.telefon||u.email||u.nev||"").trim().toLocaleLowerCase("hu-HU");if(k)byKey.set(k,{nev:u.nev,telefon:u.telefon,email:u.email})}const{data:hist}=await db.from("fuvarok").select("nev,telefon,email,indulas,cel,letrehozva").or(`nev.ilike.%${q}%,telefon.ilike.%${q}%`).order("letrehozva",{ascending:false}).limit(40);for(const f of hist||[]){const k=String(f.telefon||f.email||f.nev||"").trim().toLocaleLowerCase("hu-HU");if(k&&!byKey.has(k))byKey.set(k,{nev:f.nev,telefon:f.telefon,email:f.email})}const lista=[];for(const u of [...byKey.values()].slice(0,12)){let fs:any[]=[];if(u.telefon){const r=await db.from("fuvarok").select("indulas,cel").eq("telefon",u.telefon).order("letrehozva",{ascending:false}).limit(20);fs=r.data||[]}else if(u.email){const r=await db.from("fuvarok").select("indulas,cel").eq("email",u.email).order("letrehozva",{ascending:false}).limit(20);fs=r.data||[]}else{const r=await db.from("fuvarok").select("indulas,cel").eq("nev",u.nev).order("letrehozva",{ascending:false}).limit(20);fs=r.data||[]}const m=new Map();for(const f of fs)for(const cim of [f.indulas,f.cel])if(cim){const k=String(cim).trim();m.set(k,(m.get(k)||0)+1)}lista.push({nev:u.nev,telefon:u.telefon,email:u.email,cimek:[...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6).map(([cim,alkalom])=>({cim,alkalom}))})}return{siker:true,lista};}
