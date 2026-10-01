@@ -146,6 +146,7 @@ async function geocodeAddress(q:string){
  // A magyar címeknél a település/irányítószám sorrendet normalizáljuk, mert a Nominatim
  // különben rövid utcaneveknél téves pontot adhat vissza, ami irreális 1 perces ETA-t okoz.
  const m=raw.match(/^([^,]+),\s*(.+?),\s*(\d{4})(?:\s*,?\s*Magyarország)?$/i);
+ const simple=raw.match(/^([^,]+),\s*(.+)$/i);
  const canonical=m?`${m[3]} ${m[1]}, ${m[2]}`:raw;
  const street=m?m[2].replace(/\bu\.\s*/gi,"utca "):"";
  const structured=m?`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=hu&street=${encodeURIComponent(street)}&city=${encodeURIComponent(m[1])}&postalcode=${encodeURIComponent(m[3])}`:simple?`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=hu&street=${encodeURIComponent(simple[2].replace(/\\bu\\.\\s*/gi,"utca "))}&city=${encodeURIComponent(simple[1])}`:"";
