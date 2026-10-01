@@ -597,7 +597,7 @@ async function driverAction(name:string,args:any[],token:string) {
     if(f){
       const {data:trip}=await db.from("fuvarok").select("id,indulas,indulas_lat,indulas_lng").eq("id",f.id).maybeSingle();
       if(trip){
-        const pickup=(Number.isFinite(Number(trip.indulas_lat))&&Number.isFinite(Number(trip.indulas_lng)))?{lat:Number(trip.indulas_lat),lon:Number(trip.indulas_lng)}:await geocodeAddress(trip.indulas);
+        const pickup=validTripCoords(trip.indulas_lat,trip.indulas_lng)?{lat:Number(trip.indulas_lat),lon:Number(trip.indulas_lng)}:await geocodeAddress(trip.indulas);
         if(pickup){const mins=await routeCoords({lat:nlat,lng:nlng},pickup);if(mins>0)await db.from("fuvarok").update({menetido_perc:mins,eta_frissitve:stamp}).eq("id",trip.id)}
       }
     }
