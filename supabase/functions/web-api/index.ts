@@ -35,7 +35,19 @@ function normalizeTrip(x: any, i = 0) {
 async function role(token: string, wanted?: string) {
   if (!token) return null;
   const {data:session}=await db.from("login_sessions").select("*").eq("token_hash",await sha256(token)).gt("lejar",new Date().toISOString()).maybeSingle();
-  if(session){if(wanted&&session.szerepkor!==wanted)return null;return{szerepkor:session.szerepkor,sofor_id:session.sofor_id,email:session.szerepkor==="ugyfel"?session.felhasznalo:"",user_id:null,user:{id:null,user_metadata:{}}}}
+  if(session){
+    if(wanted&&session.szerepkor!==wanted)return null;
+    // Az adminból törölt/inaktivált fiók meglévő mobilos sessionnel se maradhasson belépve.
+    if(session.szerepkor==="ugyfel"){
+      const {data:u}=await db.from("ugyfelek").select("id").eq("email",clean(session.felhasznalo,240).toLowerCase()).maybeSingle();
+      if(!u){await db.from("login_sessions").delete().eq("id",session.id);return null}
+    }
+    if(session.szerepkor==="sofor"){
+      const {data:s}=await db.from("soforok").select("id").eq("id",session.sofor_id).eq("aktiv",true).maybeSingle();
+      if(!s){await db.from("login_sessions").delete().eq("id",session.id);return null}
+    }
+    return{szerepkor:session.szerepkor,sofor_id:session.sofor_id,email:session.szerepkor==="ugyfel"?session.felhasznalo:"",user_id:null,user:{id:null,user_metadata:{}}}
+  }
   const { data: ud } = await db.auth.getUser(token);
   if (!ud.user) return null;
   const { data } = await db.from("app_roles").select("*").eq("user_id", ud.user.id).maybeSingle();
