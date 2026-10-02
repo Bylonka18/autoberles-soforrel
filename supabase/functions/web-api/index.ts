@@ -331,6 +331,9 @@ async function publicAction(name: string, p: any, origin: string) {
     return { lista:list.slice(0,10).map((x:any)=>{let cim=shortAddress(x);const aa=x?.address||{};const cons=aa.conscriptionnumber||x?.extratags?.["addr:conscriptionnumber"]||"";if(hm&&!String(aa.house_number||"").trim()&&!cons){const city=aa.city||aa.town||aa.village||aa.municipality||aa.hamlet||"",road=aa.road||aa.pedestrian||aa.residential||aa.street||aa.place||aa.hamlet||"";if(city&&road)cim=city+", "+road+" "+hm}if(cons&&!cim.includes(String(cons)))cim=(cim?cim+" • ":"")+String(cons)+" hrsz";const poi=x?.namedetails?.name||x?.name||aa.shop||aa.amenity||aa.tourism||aa.office||aa.building||aa.leisure||aa.name||"";const nev=String(poi||"").trim();if(nev&&!cim.toLowerCase().includes(nev.toLowerCase()))cim=nev+" – "+cim;return{cim}}) };
   }
   if (name === "foglalasKuldes") {
+    // Az admin Online rendelés kapcsolója szerveroldalon is kötelező: így sem a web, sem a mobilapp nem tudja megkerülni.
+    const {data:onlineSetting}=await db.from("app_beallitasok").select("ertek").eq("kulcs","online_rendeles").maybeSingle();
+    if(onlineSetting?.ertek!==true)return{siker:false,uzenet:"Az online rendelés jelenleg szünetel. Kérjük, próbáld meg később."};
     let a:any={}; try{a=JSON.parse(decodeURIComponent(String(p.adat||"{}")))}catch{}
     const email=clean(a.email,240).toLowerCase(),telefon=clean(a.telefon,60);
     if(!email.includes("@")||clean(a.nev,160).length<2||clean(a.indulas).length<3||clean(a.cel).length<3)return{siker:false,uzenet:"Tölts ki minden kötelező mezőt!"};
