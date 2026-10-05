@@ -494,6 +494,18 @@ async function customerAction(name:string,args:any[],token:string) {
     }
     return{siker:true,pont:ujPont,bevaltottPont:n,uzenet:`${n} pont sikeresen beváltva. Új egyenleg: ${ujPont} pont.`};
   }
+  if (name === "torzsFiokTorles") {
+    if(!customerId)return{siker:false,uzenet:"A fiók nem található."};
+    const email=clean(r.email,240).toLowerCase(),now=new Date().toISOString();
+    // A korábbi fuvarok üzleti nyilvántartásként megmaradnak, de leválasztjuk őket a törölt ügyfélfiókról.
+    await db.from("fuvarok").update({felhasznalo_id:null}).eq("felhasznalo_id",customerId);
+    // A készülék push-tokenjei és minden aktív munkamenet azonnal érvényét veszti.
+    await db.from("push_tokens").delete().eq("szerepkor","ugyfel").eq("felhasznalo",email);
+    await db.from("login_sessions").delete().eq("felhasznalo",email);
+    const {error}=await db.from("ugyfelek").delete().eq("id",customerId);
+    if(error)return{siker:false,uzenet:"A fiók törlése nem sikerült. Próbáld újra."};
+    return{siker:true,uzenet:"A fiókod véglegesen törölve lett."};
+  }
   if (name === "torzsKijelentkezes") return {siker:true};
   if (name === "confirmBooking") {
     const az=clean(args[0],120);
