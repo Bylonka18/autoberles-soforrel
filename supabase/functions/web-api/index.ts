@@ -663,7 +663,7 @@ Deno.serve(async req => {
     let result:any;
     const adminNames=new Set(["onlineRendelesValtas","adminSoforListaLekerdezese","adminFuvarokLekerdezese","adminSoforHelyzetek","adminErtekelesLista","adminTiltolistaLekerdezese","adminFelhasznaloLista","adminSoforDolgozikValtas","adminSoforEmailMentese","adminSoforJarmuMentese","adminSoforLetrehozasa","adminSoforTorlese","adminFuvarMentese","adminFuvarTorlese","adminErtekelesAllapot","adminErtekelesTorles","adminUgyfelTiltasa","adminTiltoFeloldasa","adminFelhasznaloPont","adminFelhasznaloSzerkesztes","adminFelhasznaloTorles","adminNapiOsszesito","adminFuvarArchivum","adminFuvarVisszahelyezese"]);
     const driverNames=new Set(["soforSajatDolgozikAllapot","soforSajatDolgozikValtas","ujFuvarokLekerdezese","soforKezdoAdatok","fuvarElvallalasa","fuvarKesz","soforAppHelyzetFrissites","soforUgyfelJavaslatok","soforFuvarHozzaadas","soforRendelesMegkapva","soforMegerkezett","soforKijelentkezes","soforAdminToken","pushTokenMentese"]);
-    const customerNames=new Set(["torzsProfilLekerdezese","torzsSajatFuvarok","torzsPontBevaltas","torzsProfilModositas","torzsJelszoModositas","torzsKijelentkezes","confirmBooking","pushTokenMentese"]);
+    const customerNames=new Set(["torzsProfilLekerdezese","torzsSajatFuvarok","torzsPontBevaltas","torzsProfilModositas","torzsJelszoModositas","torzsFiokTorles","torzsKijelentkezes","confirmBooking","pushTokenMentese"]);
     if(adminNames.has(name)||(name==="onlineRendelesAllapot"&&token))result=await adminAction(name,args,token);
     else if(name==="pushTokenMentese"){
       const pr=await role(token);
