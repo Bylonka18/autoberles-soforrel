@@ -162,7 +162,7 @@ async function geocodeAddress(q:string){
 }
 function approxMinutesCoords(a:any,b:any){if(!a||!b)return 0;const lat1=Number(a.lat),lon1=Number(a.lng??a.lon),lat2=Number(b.lat),lon2=Number(b.lng??b.lon);if(![lat1,lon1,lat2,lon2].every(Number.isFinite))return 0;const rad=Math.PI/180,dlat=(lat2-lat1)*rad,dlon=(lon2-lon1)*rad;const h=Math.sin(dlat/2)**2+Math.cos(lat1*rad)*Math.cos(lat2*rad)*Math.sin(dlon/2)**2;const km=6371*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));return km<0.1?1:Math.max(2,Math.ceil(km/30*60))}
 async function routeMinutes(a:string,b:string){if(!a||!b)return 0;const [x,y]=await Promise.all([geocodeAddress(a),geocodeAddress(b)]);if(!x||!y)return 0;const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${x.lon},${x.lat};${y.lon},${y.lat}?overview=false`,{headers:{"User-Agent":"AutoberlesSoforrel/1.0"}});const j=r.ok?await r.json():null;return j?.routes?.[0]?.duration?Math.max(1,Math.ceil(Number(j.routes[0].duration)/60)):0}
-async function routeCoords(a:any,b:any){if(!a||!b)return 0;const fallback=approxMinutesCoords(a,b);try{const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${Number(a.lng??a.lon)},${Number(a.lat)};${Number(b.lng??b.lon)},${Number(b.lat)}?overview=false`,{headers:{"User-Agent":"AutoberlesSoforrel/1.0"}});const j=r.ok?await r.json():null;const road=j?.routes?.[0]?.duration?Math.max(1,Math.ceil(Number(j.routes[0].duration)/60)):0;return road>0?(fallback<=10?Math.max(road,fallback):road):fallback}catch{return fallback}}
+async function routeCoords(a:any,b:any){if(!a||!b)return 0;const fallback=approxMinutesCoords(a,b);try{const k=Deno.env.get("GOOGLE_MAPS_API_KEY");if(k){try{const response=await fetch("https://routes.googleapis.com/directions/v2:computeRoutes",{method:"POST",headers:{"Content-Type":"application/json","X-Goog-Api-Key":k,"X-Goog-FieldMask":"routes.duration"},body:JSON.stringify({origin:{location:{latLng:{latitude:Number(a.lat),longitude:Number(a.lng??a.lon)}}},destination:{location:{latLng:{latitude:Number(b.lat),longitude:Number(b.lng??b.lon)}}},travelMode:"DRIVE",routingPreference:"TRAFFIC_AWARE"})});if(response.ok){const j=await response.json();const secs=Number(String(j?.routes?.[0]?.duration||"").replace(/s$/,""));if(secs>0)return Math.max(1,Math.ceil(secs/60));}}catch(e){console.warn("Google ETA fallback",String(e))}}const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${Number(a.lng??a.lon)},${Number(a.lat)};${Number(b.lng??b.lon)},${Number(b.lat)}?overview=false`,{headers:{"User-Agent":"AutoberlesSoforrel/1.0"}});const j=r.ok?await r.json():null;const road=j?.routes?.[0]?.duration?Math.max(1,Math.ceil(Number(j.routes[0].duration)/60)):0;return road>0?(fallback<=10?Math.max(road,fallback):road):fallback}catch{return fallback}}
 async function etaGps(live:any,addr:string){
  const p=await geocodeAddress(addr);if(!p)return 0;
  const road=await routeCoords(live,p);
@@ -237,6 +237,11 @@ async function publicAction(name: string, p: any, origin: string) {
   if(name==="torzsFelhasznaloBelepes"){
     const az=clean(p.args?.[0],240).toLowerCase(),clientHash=clean(p.args?.[1],128).toLowerCase();
     if(!az||!/^[a-f0-9]{64}$/.test(clientHash))return{siker:false,uzenet:"Hibás email/felhasználónév vagy jelszó."};
+    // Törölt ügyfelet a korábbi Google Sheets rendszerből sem állítunk vissza.
+    const deletedHash=await sha256(az);
+    const {data:deleted,error:deletedLookupError}=await db.from("torolt_ugyfel_azonositok").select("email_sha256").eq("email_sha256",deletedHash).maybeSingle();
+    if(deletedLookupError)return{siker:false,uzenet:"A bejelentkezés átmenetileg nem érhető el. Próbáld újra később."};
+    if(deleted)return{siker:false,uzenet:"Ez a fiók korábban törölve lett. Új regisztráció szükséges."};
     const {data:local}=await db.from("ugyfelek").select("*").eq("email",az).maybeSingle();
     let u:any=null;
     if(local?.jelszo_hash&&local.jelszo_hash===clientHash){
@@ -354,25 +359,93 @@ async function publicAction(name: string, p: any, origin: string) {
       // A sorhelyet és a várható érkezést a meglévő sor/ETA logika számolja a megerősítés után.
     }
     if(planned&&a.datum&&a.ido){
-      const target:any={datum,ido:clean(a.ido,8),indulas:clean(a.indulas),cel:clean(a.cel)};
+      const target={datum,ido:clean(a.ido,8),indulas:clean(a.indulas),cel:clean(a.cel)};
       const targetMs=tripPlannedMs(target);
-      const {data:working}=await db.from("soforok").select("id").eq("aktiv",true).eq("dolgozik",true);
-      if(!working?.length)return{siker:false,uzenet:"Erre az időpontra jelenleg nincs szolgálatban elérhető sofőr."};
-      const nowMs=Date.now();
-      let vanSzabad=false;
-      for(const d of working){
-        const {data:jobs}=await db.from("fuvarok").select("id,indulas,cel,datum,ido,letrehozva,statusz").eq("sofor_id",d.id).eq("statusz","Elvállalva").order("letrehozva");
-        const {data:waiting}=await db.from("fuvarok").select("id,indulas,cel,datum,ido,letrehozva,statusz").in("statusz",["Új rendelés","Megerősítésre vár"]).lte("letrehozva",new Date().toISOString()).order("letrehozva");
-        const chain=[...(jobs||[]),...(waiting||[]).filter((x:any)=>!x.ido||((tripPlannedMs(x)??Infinity)<(targetMs??0)))];
-        let availableAt=nowMs,lastDest:string|null=null,ok=true;
-        for(const j of chain){
-          if(lastDest){const hop=await routeMinutes(lastDest,j.indulas);if(!hop){ok=false;break}availableAt+=hop*60000}
-          const ride=await routeMinutes(j.indulas,j.cel);if(!ride){ok=false;break}availableAt+=ride*60000;lastDest=j.cel;
+      if(targetMs===null||targetMs<Date.now())return{siker:false,uzenet:"Válassz jövőbeli időpontot."};
+      const {data:drivers,error:de}=await db.from("soforok").select("id,dolgozik").eq("aktiv",true);
+      if(de)return{siker:false,uzenet:"A sofőrkapacitás ellenőrzése nem sikerült."};
+      if(!drivers?.length)return{siker:false,uzenet:"Nincs aktív sofőr a foglaláshoz."};
+      // Legalább egy sofőr minden nap szolgálatban van. A további
+      // kapacitás csak a most szolgálatban lévő sofőrökből származhat.
+      const capacity=Math.max(1,drivers.filter((d:any)=>d.dolgozik).length);
+      const previousDate=new Date(Date.parse(datum+"T12:00:00Z")-86400000).toISOString().slice(0,10);
+      const nextDate=new Date(Date.parse(datum+"T12:00:00Z")+86400000).toISOString().slice(0,10);
+      const {data:bookings,error:be}=await db.from("fuvarok")
+        .select("id,sofor_id,indulas,cel,datum,ido,statusz")
+        .in("statusz",["Új rendelés","Megerősítésre vár","Elvállalva"])
+        .not("ido","is",null).gte("datum",previousDate).lte("datum",nextDate);
+      if(be)return{siker:false,uzenet:"A meglévő foglalások ellenőrzése nem sikerült."};
+      const items=(bookings||[]).filter((j:any)=>tripPlannedMs(j)!==null).sort((a:any,b:any)=>(tripPlannedMs(a)??0)-(tripPlannedMs(b)??0));
+      const cache=new Map<string,number>();
+      async function minutes(from:string,to:string){
+        if(from.trim().toLocaleLowerCase("hu-HU")===to.trim().toLocaleLowerCase("hu-HU"))return 0;
+        const key=from+"|"+to;
+        if(cache.has(key))return cache.get(key)||0;
+        let value=0;
+        const googleKey=Deno.env.get("GOOGLE_MAPS_API_KEY")||"";
+        if(googleKey){
+          try{
+            const response=await fetch("https://routes.googleapis.com/directions/v2:computeRoutes",{
+              method:"POST",
+              headers:{"Content-Type":"application/json","X-Goog-Api-Key":googleKey,"X-Goog-FieldMask":"routes.duration"},
+              body:JSON.stringify({
+                origin:{address:from+", Magyarország"},
+                destination:{address:to+", Magyarország"},
+                travelMode:"DRIVE",
+                routingPreference:"TRAFFIC_UNAWARE",
+                languageCode:"hu-HU",
+                units:"METRIC"
+              })
+            });
+            if(response.ok){
+              const data=await response.json();
+              const seconds=Number(String(data?.routes?.[0]?.duration||"").replace(/s$/,""));
+              if(Number.isFinite(seconds)&&seconds>0)value=Math.ceil(seconds/60);
+            }else{
+              console.warn("Google Routes API status:",response.status);
+            }
+          }catch(e){console.warn("Google Routes API unavailable:",String(e))}
         }
-        if(ok&&lastDest){const hop=await routeMinutes(lastDest,target.indulas);if(!hop)ok=false;else availableAt+=hop*60000}
-        if(ok&&targetMs!==null&&availableAt<=targetMs){vanSzabad=true;break}
+        if(!value){
+          try{
+            const [a,b]=await Promise.all([geocodeAddress(from),geocodeAddress(to)]);
+            if(a&&b)value=await routeCoords(a,b);
+          }catch{}
+        }
+        cache.set(key,value);
+        return value;
       }
-      if(!vanSzabad)return{siker:false,uzenet:"Erre az időpontra a jelenlegi fuvarok menetideje alapján nincs szabad sofőr. Válassz későbbi időpontot."};
+      async function compatible(a:any,b:any){
+        const at=tripPlannedMs(a),bt=tripPlannedMs(b);
+        if(at===null||bt===null)return false;
+        const [ride,transfer]=await Promise.all([minutes(a.indulas,a.cel),minutes(a.cel,b.indulas)]);
+        if(!ride||(transfer===0&&a.cel!==b.indulas))return false;
+        return at+(ride+transfer)*60000<=bt;
+      }
+      async function canInsert(job:any,chain:any[]){
+        const t=tripPlannedMs(job);if(t===null)return false;
+        let before:any=null,after:any=null;
+        for(const x of chain){const xt=tripPlannedMs(x);if(xt!==null&&xt<=t)before=x;else if(xt!==null&&after===null)after=x}
+        if(before&&!(await compatible(before,job)))return false;
+        if(after&&!(await compatible(job,after)))return false;
+        return true;
+      }
+      // Az időpontokat a sofőrök egymástól független útvonal-láncaiba rendezzük.
+      const chains:any[][]=Array.from({length:capacity},()=>[]);
+      const slots=drivers.filter((d:any)=>d.dolgozik).concat(drivers.filter((d:any)=>!d.dolgozik)).slice(0,capacity);
+      for(const job of items){
+        const preferred=slots.findIndex((d:any)=>d.id===job.sofor_id);
+        const indices=chains.map((_,i)=>i);
+        if(preferred>=0)indices.splice(indices.indexOf(preferred),1),indices.unshift(preferred);
+        let placed=false;
+        for(const i of indices){
+          if(await canInsert(job,chains[i])){chains[i].push(job);placed=true;break}
+        }
+        if(!placed)return{siker:false,uzenet:"A meglévő időpontos foglalások ütköznek. Kérjük, egyeztess velünk!"};
+      }
+      let free=false;
+      for(const chain of chains){if(await canInsert(target,chain)){free=true;break}}
+      if(!free)return{siker:false,uzenet:"Erre az időpontra nincs szabad sofőr. Kérjük, válassz egy későbbi időpontot."};
     }
     const {data:f,error}=await db.from("fuvarok").insert({azonosito,nev:clean(a.nev,160),telefon,email,indulas:clean(a.indulas),cel:clean(a.cel),indulas_lat:validTripCoords(a.indulasLat,a.indulasLng)?Number(a.indulasLat):null,indulas_lng:validTripCoords(a.indulasLat,a.indulasLng)?Number(a.indulasLng):null,cel_lat:validTripCoords(a.celLat,a.celLng)?Number(a.celLat):null,cel_lng:validTripCoords(a.celLat,a.celLng)?Number(a.celLng):null,datum,ido:planned?clean(a.ido,8)||null:null,utasok:Math.max(1,Math.min(9,Number(a.utasok)||1)),megjegyzes:clean(a.megjegyzes,2000),statusz:"Megerősítésre vár"}).select("id,azonosito").single();
     if(error||!f)return{siker:false,uzenet:"A rendelést nem sikerült rögzíteni."};
@@ -496,15 +569,31 @@ async function customerAction(name:string,args:any[],token:string) {
   }
   if (name === "torzsFiokTorles") {
     if(!customerId)return{siker:false,uzenet:"A fiók nem található."};
-    const email=clean(r.email,240).toLowerCase(),now=new Date().toISOString();
-    // A korábbi fuvarok üzleti nyilvántartásként megmaradnak, de leválasztjuk őket a törölt ügyfélfiókról.
-    await db.from("fuvarok").update({felhasznalo_id:null}).eq("felhasznalo_id",customerId);
-    // A készülék push-tokenjei és minden aktív munkamenet azonnal érvényét veszti.
-    await db.from("push_tokens").delete().eq("szerepkor","ugyfel").eq("felhasznalo",email);
-    await db.from("login_sessions").delete().eq("felhasznalo",email);
-    const {error}=await db.from("ugyfelek").delete().eq("id",customerId);
-    if(error)return{siker:false,uzenet:"A fiók törlése nem sikerült. Próbáld újra."};
-    return{siker:true,uzenet:"A fiókod véglegesen törölve lett."};
+    const email=clean(r.email,240).toLowerCase();
+    const failed={siker:false,uzenet:"A fiók törlése nem fejeződött be. Kérjük, fordulj az ügyfélszolgálathoz."};
+    // A törlési jelzőt ELŐBB rögzítjük, hogy a régi beléptetés ne állíthassa vissza a fiókot.
+    const {error:markError}=await db.from("torolt_ugyfel_azonositok").upsert({email_sha256:await sha256(email)},{onConflict:"email_sha256"});
+    if(markError){console.error("account deletion marker",markError);return failed;}
+    // A fiókhoz kötött táblákat a külső kulcsok miatt a fő rekord előtt ürítjük.
+    const operations=[
+      db.from("fuvarok").update({felhasznalo_id:null}).eq("felhasznalo_id",customerId),
+      db.from("ugyfel_fuvarok").delete().eq("ugyfel_id",customerId),
+      db.from("pont_naplo").delete().eq("ugyfel_id",customerId),
+      db.from("customer_password_reset_tokens").delete().eq("ugyfel_id",customerId),
+      db.from("app_roles").update({ugyfel_id:null}).eq("ugyfel_id",customerId),
+    ];
+    const results=await Promise.all(operations);
+    if(results.some(x=>x.error)){console.error("account deletion dependencies",results.filter(x=>x.error).map(x=>x.error));return failed;}
+    const {data:removed,error:removeError}=await db.from("ugyfelek").delete().eq("id",customerId).select("id");
+    if(removeError||!removed?.length){console.error("account deletion customer",removeError);return failed;}
+    // A kapcsolódó tokenek és belépési jogosultságok is megszűnnek.
+    const cleanup=await Promise.all([
+      db.from("push_tokens").delete().eq("szerepkor","ugyfel").eq("felhasznalo",email),
+      db.from("login_sessions").delete().eq("szerepkor","ugyfel").eq("felhasznalo",email),
+      db.from("login_credentials").delete().eq("szerepkor","ugyfel").eq("felhasznalo",email),
+    ]);
+    if(cleanup.some(x=>x.error)){console.error("account deletion cleanup",cleanup.filter(x=>x.error).map(x=>x.error));return failed;}
+    return{siker:true,uzenet:"A fiókod törölve lett. A jogszabály szerint megőrzendő fuvar- és számlaadatok megmaradhatnak."};
   }
   if (name === "torzsKijelentkezes") return {siker:true};
   if (name === "confirmBooking") {
